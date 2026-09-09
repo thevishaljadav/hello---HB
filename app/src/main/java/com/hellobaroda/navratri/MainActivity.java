@@ -1,51 +1,43 @@
 package com.hellobaroda.navratri;
 
-import android.app.*;import android.os.*;import android.graphics.*;import android.graphics.drawable.*;import android.view.*;import android.view.inputmethod.InputMethodManager;import android.content.*;import android.widget.*;import java.util.*;
+import android.app.*;import android.os.*;import android.graphics.*;import android.view.*;import android.content.*;import android.widget.*;import java.util.*;
 
 public class MainActivity extends Activity {
   NavView v;
-  @Override public void onCreate(Bundle b){super.onCreate(b); v=new NavView(this); setContentView(v);}
-  void inputDialog(String title,String hint){ final EditText e=new EditText(this); e.setHint(hint); new AlertDialog.Builder(this).setTitle(title).setView(e).setNegativeButton("Cancel",null).setPositiveButton("Save",(d,w)->{Toast.makeText(this,"Saved locally for this prototype",Toast.LENGTH_SHORT).show();}).show(); }
-
-  class NavView extends View {
-    Paint p=new Paint(3); int screen=0; boolean king=false; int day=1; float downX,downY;
-    String[] tabs={"Home","Grounds","Create","Chat","Profile"};
-    NavView(Context c){super(c); p.setTypeface(Typeface.create("sans",0)); setBackgroundColor(Color.rgb(255,247,231));}
-    void rect(Canvas c,float l,float t,float r,float b,int color,float rad){p.setColor(color);c.drawRoundRect(l,t,r,b,rad,rad,p);}
-    void txt(Canvas c,String s,float x,float y,float size,int color,boolean bold){p.setColor(color);p.setTextSize(size);p.setTypeface(Typeface.create("sans",bold?1:0));c.drawText(s,x,y,p);}
-    void center(Canvas c,String s,float x,float y,float size,int color,boolean bold){p.setTextSize(size);p.setTypeface(Typeface.create("sans",bold?1:0));p.setColor(color);c.drawText(s,x-p.measureText(s)/2,y,p);}
-    @Override protected void onDraw(Canvas c){super.onDraw(c); float w=getWidth(),h=getHeight();
-      p.setShader(new LinearGradient(0,0,w,420,Color.rgb(70,0,25),Color.rgb(135,0,31),Shader.TileMode.CLAMP)); c.drawRect(0,0,w,420,p); p.setShader(null);
-      if(screen==0) home(c,w,h); else if(screen==1) grounds(c,w,h); else if(screen==2) create(c,w,h); else if(screen==3) chat(c,w,h); else profile(c,w,h); bottom(c,w,h);
-    }
-    void header(Canvas c,String title){txt(c,"‹",20,48,36,Color.WHITE,false);txt(c,title,58,45,22,Color.WHITE,true);}
+  @Override public void onCreate(Bundle b){super.onCreate(b);v=new NavView(this);setContentView(v);}
+  void inputDialog(String title,String hint){EditText e=new EditText(this);e.setHint(hint);new AlertDialog.Builder(this).setTitle(title).setView(e).setNegativeButton("Cancel",null).setPositiveButton("Save",(d,w)->Toast.makeText(this,"Saved locally",Toast.LENGTH_SHORT).show()).show();}
+  class NavView extends View{
+    Paint p=new Paint(3);int screen=0;boolean king=false;int day=3;float dx,dy;
+    String[] tabs={"⌂","⌖","⊕","◯","♙"};String[] names={"Home","Grounds","Create","Chat","Profile"};
+    int maroon=Color.rgb(88,0,29),deep=Color.rgb(55,0,20),gold=Color.rgb(255,198,38),cream=Color.rgb(255,249,235),pink=Color.rgb(125,0,39),muted=Color.rgb(105,82,91);
+    NavView(Context c){super(c);setBackgroundColor(cream);}
+    void bg(Canvas c,float w,float h){p.setShader(new LinearGradient(0,0,0,360,deep,Color.rgb(145,0,42),Shader.TileMode.CLAMP));c.drawRect(0,0,w,360,p);p.setShader(null);}
+    void rr(Canvas c,float l,float t,float r,float b,int col,float rad){p.setColor(col);c.drawRoundRect(l,t,r,b,rad,rad,p);}
+    void text(Canvas c,String s,float x,float y,float z,int col,boolean bold){p.setColor(col);p.setTextSize(z);p.setTypeface(Typeface.create("sans",bold?1:0));c.drawText(s,x,y,p);}
+    void center(Canvas c,String s,float x,float y,float z,int col,boolean bold){p.setTextSize(z);p.setTypeface(Typeface.create("sans",bold?1:0));p.setColor(col);c.drawText(s,x-p.measureText(s)/2,y,p);}
+    @Override protected void onDraw(Canvas c){super.onDraw(c);float w=getWidth(),h=getHeight();if(screen==0){bg(c,w,h);home(c,w,h);}else{c.drawColor(cream);header(c,screen==1?"Garba Grounds":screen==2?"Create":screen==3?"Community":"My Profile");if(screen==1)grounds(c,w,h);if(screen==2)create(c,w,h);if(screen==3)chat(c,w,h);if(screen==4)profile(c,w,h);}bottom(c,w,h);}
+    void header(Canvas c,String title){text(c,"‹",18,47,38,Color.WHITE,false);text(c,title,57,43,21,Color.WHITE,true);text(c,"⋮",getWidth()-35,44,26,Color.WHITE,true);}
     void home(Canvas c,float w,float h){
-      txt(c,"Hello Baroda",20,42,25,Color.WHITE,true);txt(c,"Vadodara • Navratri",20,68,14,0xFFFFE6B5,false);txt(c,"◉",w-48,48,22,Color.WHITE,false);
-      center(c,king?"KING MODE":"QUEEN MODE",w/2,120,17,Color.WHITE,true); center(c,king?"Energy • Garba • Brotherhood":"Grace • Garba • Community",w/2,145,13,0xFFFFD979,false);
-      rect(c,18,170,w-18,355,0xFFF8E7C9,24); center(c,"NAVRATRI",w/2,204,15,0xFF85001F,true); center(c,"Day "+day, w/2,250,42,0xFF85001F,true); center(c,"Garba • People • Places • Culture",w/2,280,14,0xFF5A2535,false);
-      rect(c,32,302,w-32,340,0xFF85001F,18);center(c,"Explore today's Garba",w/2,327,14,Color.WHITE,true);
-      txt(c,"Popular this season",20,390,19,0xFF210812,true);
-      card(c,20,412,w/2-10,535,"Garba Grounds","Discover verified venue information",0xFF85001F);
-      card(c,w/2+5,412,w-20,535,"Trending","Photos and community posts",0xFFB47A00);
-      txt(c,"Choose your mode",20,570,18,0xFF210812,true);
-      rect(c,20,590,w/2-8,638,king?0xFFFFC928:0xFFFFFFFF,18); center(c,"KING MODE",(20+w/2-8)/2,620,13,0xFF3A0014,true);
-      rect(c,w/2+8,590,w-20,638,!king?0xFFFFC928:0xFFFFFFFF,18); center(c,"QUEEN MODE",(w/2+8+w-20)/2,620,13,0xFF3A0014,true);
+      text(c,"Hello Baroda",18,35,20,Color.WHITE,true);text(c,"Vadodara  •  Navratri",18,57,10,0xFFFFE5B4,false);text(c,"♧",w-34,45,18,Color.WHITE,true);
+      center(c,king?"KING MODE":"QUEEN MODE",w/2,95,14,Color.WHITE,true);center(c,king?"Energy • Garba • Brotherhood":"Grace • Garba • Community",w/2,115,10,0xFFFFD777,false);
+      // Hero panel
+      rr(c,14,135,w-14,318,0xFFFFE9C7,22);center(c,"NAVRATRI",w/2,160,11,pink,true);center(c,"Day "+day,w/2,205,34,pink,true);center(c,"Garba  •  People  •  Places  •  Culture",w/2,227,10,muted,false);
+      rr(c,27,245,w-27,285,pink,20);center(c,"Explore today's Garba  →",w/2,270,12,Color.WHITE,true);
+      // visual festival tile
+      rr(c,14,330,w-14,462,Color.BLACK,18);p.setShader(new RadialGradient(w/2,382,170,0xFF7A0040,0xFF18000B,Shader.TileMode.CLAMP));c.drawRect(14,330,w-14,462,p);p.setShader(null);
+      center(c,"✦  GARBA NIGHT  ✦",w/2,370,13,0xFFFFD56A,true);center(c,king?"Energy • Dance • Brotherhood":"Grace • Dance • Celebration",w/2,395,17,Color.WHITE,true);center(c,"Vadodara",w/2,420,11,0xFFFFE8BD,false);
+      // quick actions
+      quick(c,14,478,(w-42)/4,548,"⌖","Grounds");quick(c,24+(w-42)/4,478,2*(w-42)/4+24,548,"♨","Trending");quick(c,34+2*(w-42)/4,478,3*(w-42)/4+34,548,"★","Events");quick(c,44+3*(w-42)/4,478,w-14,548,"♣","Community");
+      text(c,"Popular Garba Grounds",16,580,16,deep,true);text(c,"See All  ›",w-72,580,11,pink,true);
+      smallGround(c,16,595,(w-46)/3,680,"UNITED WAY");smallGround(c,24+(w-46)/3,595,2*(w-46)/3+24,680,"LAXMI VILAS");smallGround(c,32+2*(w-46)/3,595,w-16,680,"ALEMBIC");
     }
-    void card(Canvas c,float l,float t,float r,float b,String a,String btxt,int accent){rect(c,l,t,r,b,Color.WHITE,18);p.setColor(accent);c.drawRect(l,t,l+7,b,p);txt(c,a,l+18,t+35,16,0xFF210812,true);txt(c,btxt,l+18,t+60,11,0xFF6B5360,false);txt(c,"Open ›",l+18,b-18,12,accent,true);}
-    void grounds(Canvas c,float w,float h){header(c,"Garba Grounds"); rect(c,18,75,w-18,120,Color.WHITE,22);txt(c,"⌕  Search grounds in Vadodara...",34,103,14,0xFF806A72,false);txt(c,"Verified ground directory",20,153,18,0xFF210812,true);txt(c,"Add venue information as it is verified.",20,178,12,0xFF806A72,false);
-      empty(c,205,"No ground data added yet","Use Add Ground to build your Vadodara directory."); rect(c,20,h-160,w-20,h-105,0xFF85001F,22);center(c,"+  Add Ground",w/2,h-125,15,Color.WHITE,true);
-    }
-    void empty(Canvas c,float y,String a,String b){rect(c,20,y,getWidth()-20,y+150,Color.WHITE,20);center(c,"◎",getWidth()/2,y+52,34,0xFFB47A00,true);center(c,a,getWidth()/2,y+84,15,0xFF210812,true);center(c,b,getWidth()/2,y+108,11,0xFF806A72,false);}
-    void create(Canvas c,float w,float h){header(c,"Create");txt(c,"Share a Navratri moment",20,100,23,0xFF210812,true);txt(c,"Keep it Garba-related and community-focused.",20,128,13,0xFF806A72,false);rect(c,20,155,w-20,250,Color.WHITE,20);center(c,"＋",w/2,205,40,0xFF85001F,true);center(c,"Add photo / video",w/2,232,14,0xFF85001F,true);rect(c,20,270,w-20,320,0xFF85001F,20);center(c,"Create post",w/2,302,15,Color.WHITE,true);txt(c,"You can connect this screen to your preferred photo storage and backend later.",20,350,w>400?12:11,0xFF806A72,false);}
-    void chat(Canvas c,float w,float h){header(c,"Community");String[] rows={"Garba Community","My Ground","King Mode","Queen Mode","Photography Hub"};float y=85;for(String s:rows){rect(c,20,y,w-20,y+58,Color.WHITE,16);txt(c,"●",35,y+36,20,0xFF85001F,true);txt(c,s,65,y+27,15,0xFF210812,true);txt(c,"Tap to open conversation",65,y+45,10,0xFF806A72,false);y+=68;}rect(c,20,h-160,w-20,h-105,0xFF85001F,20);center(c,"+  New conversation",w/2,h-125,15,Color.WHITE,true);}
-    void profile(Canvas c,float w,float h){header(c,"My Profile");center(c,king?"♛":"♕",w/2,130,62,0xFFFFC928,true);center(c,"Guest",w/2,170,22,0xFF210812,true);center(c,"Hello Baroda • Navratri",w/2,194,12,0xFF806A72,false);rect(c,20,220,w-20,270,Color.WHITE,18);center(c,"Login / Create account",w/2,252,14,0xFF85001F,true);txt(c,"Your saved grounds, posts and communities will appear here.",20,315,13,0xFF806A72,false);}
-    void bottom(Canvas c,float w,float h){float top=h-72;rect(c,0,top,w,h,Color.WHITE,0);for(int i=0;i<5;i++){float x=w*(i+.5f)/5;int col=screen==i?0xFF85001F:0xFF806A72;center(c,tabs[i],x,top+40,10,col,screen==i);}}
-    @Override public boolean onTouchEvent(android.view.MotionEvent e){if(e.getAction()==0){downX=e.getX();downY=e.getY();return true;}if(e.getAction()==1){float x=e.getX(),y=e.getY();float h=getHeight(),w=getWidth();
-      if(y>h-90){screen=Math.min(4,(int)(x/(w/5)));invalidate();return true;}
-      if(screen==0 && y>585){king=x<w/2;invalidate();return true;}
-      if(screen==1 && y>h-190){inputDialog("Add Ground","Ground name / verified details");return true;}
-      if(screen==4 && y>200&&y<300){inputDialog("Login / Create account","Email or phone");return true;}
-      if(screen==0 && y>165&&y<360){day++;if(day>12)day=1;invalidate();return true;}
-      return true;}return true;}
+    void quick(Canvas c,float l,float t,float r,float b,String icon,String label){rr(c,l,t,r,b,Color.WHITE,18);center(c,icon,(l+r)/2,t+30,20,pink,true);center(c,label,(l+r)/2,t+53,9,deep,true);}
+    void smallGround(Canvas c,float l,float t,float r,float b,String name){rr(c,l,t,r,b,Color.WHITE,14);rr(c,l+4,t+4,r-4,t+40,maroon,10);center(c,"✦",(l+r)/2,t+29,18,gold,true);center(c,name,(l+r)/2,t+56,8,deep,true);center(c,"Popular",(l+r)/2,t+69,7,muted,false);}
+    void grounds(Canvas c,float w,float h){rr(c,16,65,w-16,108,Color.WHITE,22);text(c,"⌕  Search grounds in Vadodara...",30,92,12,muted,false);String[] f={"All","Popular","Nearby","A to Z"};float x=18;for(String s:f){float rw=62;rr(c,x,122,x+rw,154,s.equals("All")?gold:Color.WHITE,17);center(c,s,x+rw/2,143,10,deep,true);x+=rw+7;}text(c,"Vadodara Garba directory",18,184,17,deep,true);text(c,"Verified information can be added by the community.",18,204,10,muted,false);String[] n={"United Way Garba","Laxmi Vilas Ground","Alembic Ground","Nyay Mandir Ground","Gotri Garba Ground"};int y=220;for(String s:n){rr(c,16,y,w-16,y+82,Color.WHITE,16);rr(c,25,y+10,112,y+70,maroon,12);center(c,"✦",68,y+47,24,gold,true);text(c,s,124,y+30,13,deep,true);text(c,"Vadodara  •  Garba",124,y+49,9,muted,false);rr(c,124,y+58,196,y+75,0xFFFFE8B0,9);center(c,"View details",160,y+70,8,pink,true);text(c,"♡",w-40,y+35,20,pink,false);y+=92;}}
+    void create(Canvas c,float w,float h){text(c,"Share your Navratri moment",18,92,20,deep,true);text(c,"Photos, videos and Garba memories",18,115,11,muted,false);rr(c,16,140,w-16,280,Color.WHITE,20);center(c,"＋",w/2,205,44,pink,true);center(c,"Add photo / video",w/2,232,13,pink,true);rr(c,16,300,w-16,350,pink,20);center(c,"Create Post",w/2,331,13,Color.WHITE,true);}
+    void chat(Canvas c,float w,float h){String[] rows={"Vadodara Garba Lovers","United Way Group","King Mode Crew","Queen Mode Circle","Photography Hub"};int y=72;for(String s:rows){rr(c,16,y,w-16,y+62,Color.WHITE,15);rr(c,26,y+10,70,y+54,maroon,22);center(c,"✦",48,y+39,16,gold,true);text(c,s,82,y+27,13,deep,true);text(c,"Community conversation",82,y+45,9,muted,false);y+=72;}rr(c,16,h-140,w-16,h-88,pink,20);center(c,"＋  New conversation",w/2,h-107,13,Color.WHITE,true);}
+    void profile(Canvas c,float w,float h){center(c,king?"♛":"♕",w/2,105,54,gold,true);center(c,"Guest",w/2,142,20,deep,true);center(c,"Garba  |  Culture  |  Vadodara",w/2,162,10,muted,false);rr(c,16,184,w-16,234,Color.WHITE,18);center(c,"Login / Create account",w/2,215,12,pink,true);String[] rows={"♡  My Bookmarks","▣  My Posts","★  My Events","♧  Invite Friends","⚙  Settings","?  Help & Support"};int y=270;for(String s:rows){text(c,s,28,y,13,deep,true);text(c,"›",w-35,y,18,muted,false);y+=48;}}
+    void bottom(Canvas c,float w,float h){float top=h-68;rr(c,0,top,w,h,Color.WHITE,0);for(int i=0;i<5;i++){float x=w*(i+.5f)/5;int col=screen==i?pink:muted;center(c,tabs[i],x,top+27,17,col,true);center(c,names[i],x,top+47,7,col,screen==i);}}
+    @Override public boolean onTouchEvent(MotionEvent e){if(e.getAction()==0){dx=e.getX();dy=e.getY();return true;}if(e.getAction()==1){float x=e.getX(),y=e.getY(),w=getWidth(),h=getHeight();if(y>h-82){screen=Math.min(4,(int)(x/(w/5)));invalidate();return true;}if(screen==0&&y>470&&y<560){if(x<w/2)screen=1;else screen=1;invalidate();return true;}if(screen==0&&y>175&&y<300){day++;if(day>12)day=1;invalidate();return true;}if(screen==0&&y>545&&y<625){king=x<w/2;invalidate();return true;}if(screen==1&&y>h-180){inputDialog("Add Ground","Ground name / verified details");return true;}if(screen==4&&y>175&&y<245){inputDialog("Login / Create account","Email or phone");return true;}return true;}return true;}
   }
-}
+}"}
