@@ -21,6 +21,9 @@ jobs:
         run: |
           sed -i 's/rowTitle("Popular Garba Grounds","See all",()->grounds())/rowTitle("Popular Garba Grounds","See all",v->grounds())/' app/src/main/java/com/hellobaroda/navratri/MainActivity.java
           sed -i 's/rowTitle("Community moments","View trending",()->trending())/rowTitle("Community moments","View trending",v->trending())/' app/src/main/java/com/hellobaroda/navratri/MainActivity.java
+          sed -i 's/final int MAROON=Color.rgb(133,0,31), DEEP=Color.rgb(58,0,20), GOLD=Color.rgb(255,201,40), CREAM=Color.rgb(255,247,231), INK=Color.rgb(33,8,18), WHITE=Color.WHITE, MUTED=Color.rgb(111,91,96), SOFT=Color.rgb(250,238,229);/final int MAROON=Color.rgb(133,0,31), DEEP=Color.rgb(58,0,20), GOLD=Color.rgb(255,201,40), CREAM=Color.rgb(255,247,231), INK=Color.rgb(33,8,18), WHITE=Color.WHITE, MUTED=Color.rgb(111,91,96), SOFT=Color.rgb(250,238,229), PINK=Color.rgb(181,0,55);/' app/src/main/java/com/hellobaroda/navratri/MainActivity2.java
+          sed -i 's/()->{mode="queen";login();}/v->{mode="queen";login();}/' app/src/main/java/com/hellobaroda/navratri/MainActivity2.java
+          sed -i 's/()->{mode="king";login();}/v->{mode="king";login();}/' app/src/main/java/com/hellobaroda/navratri/MainActivity2.java
       - run: gradle :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
