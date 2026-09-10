@@ -1,8 +1,8 @@
-name: Build Hello Baroda APK
+name: Build Hello Baroda Online APK
 on:
   workflow_dispatch:
   push:
-    branches: [ navratri-apk ]
+    branches: [ app-online ]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,5 +20,5 @@ jobs:
       - run: gradle :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Hello-Baroda-debug-apk
+          name: Hello-Baroda-online-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
