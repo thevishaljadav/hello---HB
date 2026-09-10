@@ -1,0 +1,1 @@
+Hello Baroda online build branch. Supabase backend is connected; this file marks the production-online build stage.
