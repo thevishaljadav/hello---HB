@@ -1,67 +1,52 @@
-import Link from 'next/link';
-import { Card } from 'components/card';
-import { ContextAlert } from 'components/context-alert';
-import { Markdown } from 'components/markdown';
-import { RandomQuote } from 'components/random-quote';
-import { getNetlifyContext } from 'utils';
+'use client';
 
-const contextExplainer = `
-The card below is rendered on the server based on the value of \`process.env.CONTEXT\` 
-([docs](https://docs.netlify.com/configure-builds/environment-variables/#build-metadata)):
-`;
+import { useMemo, useState } from 'react';
 
-const preDynamicContentExplainer = `
-The card content below is fetched by the client-side from \`/quotes/random\` (see file \`app/quotes/random/route.js\`) with a different quote shown on each page load:
-`;
+const brand = 'MastiFlix';
+const series = [
+  { id: 1, title: 'Ishq Ke Raaz', genre: 'Romance', language: 'Hindi', episodes: 18, progress: 62, image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=80' },
+  { id: 2, title: 'Gully Ke Dost', genre: 'Comedy', language: 'Hindi', episodes: 24, progress: 0, image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=80' },
+  { id: 3, title: 'Mumbai Nights', genre: 'Drama', language: 'Hindi', episodes: 12, progress: 0, image: 'https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=900&q=80' },
+  { id: 4, title: 'Dil Se Gujarat', genre: 'Family', language: 'Gujarati', episodes: 16, progress: 28, image: 'https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=900&q=80' },
+];
+const episodes = [
+  { id: 1, title: 'Pehli Mulaqat', duration: '02:14', free: true, image: series[0].image },
+  { id: 2, title: 'Ek Chhota Sa Raaz', duration: '03:06', free: true, image: series[0].image },
+  { id: 3, title: 'Message Raat Ko', duration: '03:42', free: false, image: series[0].image },
+  { id: 4, title: 'Kya Woh Sach Tha?', duration: '04:10', free: false, image: series[0].image },
+];
 
-const postDynamicContentExplainer = `
-On Netlify, Next.js Route Handlers are automatically deployed as [Serverless Functions](https://docs.netlify.com/functions/overview/).
-Alternatively, you can add Serverless Functions to any site regardless of framework, with acccess to the [full context data](https://docs.netlify.com/functions/api/).
-
-And as always with dynamic content, beware of layout shifts & flicker! (here, we aren't...)
-`;
-
-const ctx = getNetlifyContext();
+function Icon({ name, size = 20 }) {
+  const paths = {
+    home: 'M3 10.5 12 3l9 7.5M5 9v11h14V9M9 20v-6h6v6',
+    play: 'M8 5v14l11-7-11-7Z', search: 'm21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z',
+    heart: 'm20.8 8.9-8.8 9-8.8-9A5.3 5.3 0 0 1 12 5.3a5.3 5.3 0 0 1 8.8 3.6Z', user: 'M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
+    lock: 'M6 10V8a6 6 0 0 1 12 0v2M5 10h14v11H5V10Z', headset: 'M4 14a8 8 0 0 1 16 0v3M4 14v3a2 2 0 0 0 2 2h1v-5H4m16 0v3a2 2 0 0 1-2 2h-1v-5h3', music: 'M9 18V5l10-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm10-2a3 3 0 1 1-3-3 3 3 0 0 1 3 3Z',
+  };
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name]} /></svg>;
+}
 
 export default function Page() {
-    return (
-        <div className="flex flex-col gap-12 sm:gap-16">
-            <section>
-                <ContextAlert className="mb-6" />
-                <h1 className="mb-4">Netlify Platform Starter - Next.js</h1>
-                <p className="mb-6 text-lg">Get started with Next.js and Netlify in seconds.</p>
-                <Link href="https://docs.netlify.com/frameworks/next-js/overview/" className="btn btn-lg sm:min-w-64">
-                    Read the Docs
-                </Link>
-            </section>
-            {!!ctx && (
-                <section className="flex flex-col gap-4">
-                    <Markdown content={contextExplainer} />
-                    <RuntimeContextCard />
-                </section>
-            )}
-            <section className="flex flex-col gap-4">
-                <Markdown content={preDynamicContentExplainer} />
-                <RandomQuote />
-                <Markdown content={postDynamicContentExplainer} />
-            </section>
-        </div>
-    );
+  const [tab, setTab] = useState('home'); const [search, setSearch] = useState(''); const [selected, setSelected] = useState(null); const [episode, setEpisode] = useState(0); const [support, setSupport] = useState(false); const [liked, setLiked] = useState(false);
+  const filtered = useMemo(() => series.filter(x => `${x.title} ${x.genre} ${x.language}`.toLowerCase().includes(search.toLowerCase())), [search]);
+  const open = item => { setSelected(item); setEpisode(0); };
+  return <div className="app-shell">
+    <header className="topbar"><div className="brand-mark" onClick={() => setTab('home')}><span className="brand-dot" />{brand}</div><div className="top-actions"><label className="searchbox"><Icon name="search" size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search shows, songs..." aria-label="Search"/></label><button className="icon-btn" onClick={() => setSupport(true)} aria-label="Customer care"><Icon name="headset"/></button><button className="avatar" onClick={() => setTab('profile')} aria-label="Profile"><Icon name="user" size={19}/></button></div></header>
+    <main className="content">
+      {tab === 'home' && <><section className="hero-card"><div className="hero-copy"><span className="eyebrow">ORIGINAL SERIES • HINDI</span><h1>Stories made for<br/><span>your screen.</span></h1><p>Swipe into short Indian stories, one episode at a time. Watch free episodes or unlock the next chapter when you’re ready.</p><div className="hero-actions"><button className="primary" onClick={() => open(series[0])}><Icon name="play" size={18}/>Start watching</button><button className="secondary" onClick={() => setTab('series')}>Explore series</button></div></div><div className="hero-poster"><img src={series[0].image} alt="Ishq Ke Raaz"/><div className="poster-gradient"/><div className="vertical-badge">9:16</div></div></section>
+        <section className="section"><div className="section-head"><div><span className="eyebrow">FOR YOU</span><h2>Continue watching</h2></div><button className="text-btn" onClick={() => setTab('series')}>View all</button></div><div className="rail">{series.filter(x => x.progress).map(x => <SeriesCard key={x.id} item={x} onClick={() => open(x)}/>)}</div></section>
+        <section className="section"><div className="section-head"><div><span className="eyebrow">TRENDING NOW</span><h2>Popular stories</h2></div><button className="text-btn" onClick={() => setTab('series')}>See all</button></div><div className="rail">{filtered.map(x => <SeriesCard key={x.id} item={x} onClick={() => open(x)}/>)}</div></section></>}
+      {tab === 'series' && <section className="library"><div className="section-head"><div><span className="eyebrow">DISCOVER</span><h1>All series</h1></div><span className="count">{filtered.length} shows</span></div><div className="library-grid">{filtered.map(x => <SeriesCard key={x.id} item={x} onClick={() => open(x)}/>)}</div></section>}
+      {tab === 'music' && <Music/>}{tab === 'community' && <Community/>}{tab === 'profile' && <Profile onSupport={() => setSupport(true)}/>} 
+    </main>
+    <nav className="bottom-nav">{[['home','Home','home'],['series','Series','play'],['music','Music','music'],['community','Community','heart'],['profile','Profile','user']].map(([k,l,i]) => <button key={k} className={tab === k ? 'active' : ''} onClick={() => setTab(k)}><Icon name={i} size={19}/><span>{l}</span></button>)}</nav>
+    {selected && <Player item={selected} episode={episode} setEpisode={setEpisode} onClose={() => setSelected(null)} liked={liked} setLiked={setLiked}/>} {support && <Support onClose={() => setSupport(false)}/>} 
+  </div>;
 }
 
-function RuntimeContextCard() {
-    const title = `Netlify Context: running in ${ctx} mode.`;
-    if (ctx === 'dev') {
-        return (
-            <Card title={title}>
-                <p>Next.js will rebuild any page you navigate to, including static pages.</p>
-            </Card>
-        );
-    } else {
-        return (
-            <Card title={title}>
-                <p>This page was statically-generated at build time.</p>
-            </Card>
-        );
-    }
-}
+function SeriesCard({ item, onClick }) { return <button className="series-card" onClick={onClick}><div className="card-image"><img src={item.image} alt=""/><span>{item.episodes} EP</span>{item.progress > 0 && <div className="progress"><i style={{width:`${item.progress}%`}}/></div>}</div><strong>{item.title}</strong><small>{item.genre} · {item.language}</small></button>; }
+function Music() { return <section className="library"><span className="eyebrow">SOUNDTRACKS</span><h1>Music for every mood.</h1><p className="lead">Original songs from your favourite stories, ready to play between episodes.</p><div className="music-list">{['Tera Saath','Raat Ki Baatein','Dil Se','Apni Gully'].map((s,i)=><div className="song" key={s}><div className="song-art"><Icon name="music"/></div><div><strong>{s}</strong><small>MastiFlix Originals · 03:{12+i*7}</small></div><button className="play-mini"><Icon name="play" size={16}/></button></div>)}</div></section>; }
+function Community() { return <section className="library"><span className="eyebrow">COMMUNITY</span><h1>Watch. Talk. Belong.</h1><p className="lead">Discuss episodes, share theories and discover what the community is watching next.</p>{[['A','Did anyone else notice that ending?','I think the next episode is going to change everything. 🔥','248','42'],['P','New episode was worth the wait!','That soundtrack is already stuck in my head.','186','19']].map(p=><div className="community-post" key={p[1]}><div className="post-user"><span className="avatar small">{p[0]}</span><strong>{p[0] === 'A' ? 'Arjun' : 'Priya'} · 12m</strong></div><h3>“{p[1]}”</h3><p>{p[2]}</p><div className="post-actions"><span>♡ {p[3]}</span><span>💬 {p[4]}</span><span>↗ Share</span></div></div>)}</section>; }
+function Profile({ onSupport }) { return <section className="library"><div className="profile-hero"><span className="avatar large"><Icon name="user" size={30}/></span><div><span className="eyebrow">YOUR ACCOUNT</span><h1>Welcome back</h1><p>Manage your account, purchases and preferences.</p></div></div><div className="settings-grid"><div><strong>Account & security</strong><span>Phone, email, sessions</span></div><div><strong>Wallet & purchases</strong><span>Coins, receipts, unlocks</span></div><div><strong>Notifications</strong><span>New episodes and releases</span></div><button onClick={onSupport}><strong>Help & customer care</strong><span>Get support from our team</span></button><div className="danger"><strong>Delete account</strong><span>Permanently remove your account and data</span></div></div></section>; }
+function Player({ item, episode, setEpisode, onClose, liked, setLiked }) { const current=episodes[Math.min(episode,episodes.length-1)], next=episode<episodes.length-1?episodes[episode+1]:null, locked=!current.free; return <div className="player-backdrop"><div className="player"><div className="video"><img src={current.image} alt=""/><div className="video-shade"/>{locked?<div className="unlock"><div className="lock-circle"><Icon name="lock"/></div><h2>Episode {episode+1} is locked</h2><p>Unlock this episode to continue the story.</p><button className="primary">Unlock · ₹19</button><small>Secure payment • Access saved to your account</small></div>:<><div className="video-title"><span>EPISODE {episode+1}</span><strong>{current.title}</strong></div><div className="player-controls"><button onClick={()=>setLiked(!liked)} className={liked?'liked':''}><Icon name="heart"/></button><button onClick={()=>next&&setEpisode(episode+1)} disabled={!next}><Icon name="play"/></button></div></>}</div><div className="player-info"><button className="close" onClick={onClose}>✕</button><span className="eyebrow">{item.genre} · {item.language}</span><h2>{item.title}</h2><p>Episode {episode+1} · {current.duration}</p>{next&&<button className="next-episode" onClick={()=>setEpisode(episode+1)}><span><small>NEXT</small><strong>{next.title}</strong></span><Icon name="play"/></button>}</div></div></div>; }
+function Support({ onClose }) { return <div className="modal-backdrop"><div className="support-modal"><button className="close" onClick={onClose}>✕</button><span className="eyebrow">CUSTOMER CARE</span><h2>How can we help?</h2><p>Our support team can help with payments, account access, content, or reports.</p>{[['Payment & unlock issue','Check a purchase or missing access'],['Account & login','Phone, email or account recovery'],['Report a problem','Content, community or safety']].map(x=><button className="support-row" key={x[0]}><strong>{x[0]}</strong><span>{x[1]}</span></button>)}<button className="primary full">Contact support</button></div></div>; }
