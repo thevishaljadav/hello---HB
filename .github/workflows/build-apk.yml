@@ -1,0 +1,41 @@
+name: Build Asia Drama Online APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [ app-online ]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Install Android SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Patch and validate source
+        run: python3 tools/patch_asia_drama.py
+      - name: Persist source fixes
+        shell: bash
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/java/com/hellobaroda/navratri/MainActivity2.java app/src/main/assets/index.html
+            git commit -m "Apply Asia Drama runtime hardening [skip ci]"
+            git push origin HEAD:app-online
+          fi
+      - name: Build debug APK
+        run: gradle :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Asia-Drama-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
