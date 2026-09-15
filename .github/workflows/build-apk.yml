@@ -33,39 +33,146 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          
+          import re
+          import subprocess
+
           java = Path('app/src/main/java/com/hellobaroda/navratri/MainActivity.java')
           s = java.read_text()
           s = s.replace('rowTitle("Popular Garba Grounds","See all",()->grounds())','rowTitle("Popular Garba Grounds","See all",v->grounds())')
           s = s.replace('rowTitle("Community moments","View trending",()->trending())','rowTitle("Community moments","View trending",v->trending())')
           java.write_text(s)
-          
+
           bridge = Path('app/src/main/java/com/hellobaroda/navratri/MainActivity2.java')
           s = bridge.read_text()
           s = s.replace("const ep=window.catalog?.flatMap(x=>(x.seasons||[]).flatMap(s=>s.episodes||[])).find(e=>e.id===id);", "const ep=(typeof catalog!=='undefined'?catalog:[]).flatMap(x=>(x.seasons||[]).flatMap(s=>s.episodes||[])).find(e=>e.id===id);")
           bridge.write_text(s)
-          
+
           html = Path('app/src/main/assets/index.html')
           s = html.read_text()
-          s = s.replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>', '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://checkout.razorpay.com/v1/checkout.js"></script>')
-          s = s.replace('let user=null,catalog=[],history=[];', 'let user=null,history=[];var catalog=[];let currentEpisodeId="",lastProgressSent=-1;')
-          old = "async function playEpisode(id,title,url,paid){if(paid){if(!user)return openSheet('auth');toast('Payment verification is required before premium playback');return}if(!url){toast('This episode has no published video yet');return}document.getElementById('playerTitle').textContent=title;const v=document.getElementById('video');v.src=url;document.getElementById('player').classList.add('on');v.play().catch(()=>{});v.ontimeupdate=()=>{if(user&&Math.floor(v.currentTime)%10===0)saveProgress(id,Math.floor(v.currentTime),false)}}"
-          new = "async function playEpisode(id,title,url,paid){if(paid){if(!user)return openSheet('auth');return startRazorpay(id,title)}if(!url){toast('This episode has no published video yet');return}currentEpisodeId=id;lastProgressSent=-1;document.getElementById('playerTitle').textContent=title;const v=document.getElementById('video');v.src=url;document.getElementById('player').classList.add('on');v.play().catch(()=>{});v.ontimeupdate=()=>{if(user){const p=Math.floor(v.currentTime);if(p>0&&p%10===0&&p!==lastProgressSent){lastProgressSent=p;saveProgress(id,p,false)}}};v.onended=()=>saveProgress(id,Math.floor(v.duration||v.currentTime),true)}"
-          s = s.replace(old, new)
-          s = s.replace("function closePlayer(){const v=document.getElementById('video');v.pause();v.removeAttribute('src');v.load();document.getElementById('player').classList.remove('on')}", "function closePlayer(){const v=document.getElementById('video');if(user&&currentEpisodeId&&v.currentTime>0)saveProgress(currentEpisodeId,Math.floor(v.currentTime),false);v.pause();v.removeAttribute('src');v.load();document.getElementById('player').classList.remove('on');currentEpisodeId='';lastProgressSent=-1}")
-          s = s.replace("function shareApp(){if(navigator.share)navigator.share({title:'Asia Drama',text:'Stories worth staying for.'}).catch(()=>{});else toast('Share link copied soon')}", "async function shareApp(){const data={title:'Asia Drama',text:'Stories worth staying for.',url:location.href};if(navigator.share){try{await navigator.share(data)}catch(e){}}else{try{await navigator.clipboard.writeText(location.href);toast('Link copied')}catch(e){toast('Share link: '+location.href)}}}")
-          s = s.replace("document.addEventListener('visibilitychange',()=>{if(document.hidden&&document.getElementById('video').currentTime)saveProgress('current',Math.floor(document.getElementById('video').currentTime),false)});", "document.addEventListener('visibilitychange',()=>{const v=document.getElementById('video');if(document.hidden&&user&&currentEpisodeId&&v.currentTime)saveProgress(currentEpisodeId,Math.floor(v.currentTime),false)});")
-          marker = "async function playEpisode(id,title,url,paid){"
-          if 'async function startRazorpay' not in s:
-              fn = '''\nasync function startRazorpay(episodeId,title){\n  try{\n    const session=await sb.auth.getSession();\n    const token=session.data.session?.access_token;\n    if(!token)return openSheet('auth');\n    const r=await fetch(SUPA_URL+'/functions/v1/create-razorpay-order',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPA_KEY},body:JSON.stringify({episode_id:episodeId})});\n    const order=await r.json();\n    if(!r.ok)throw new Error(order.error||'Unable to create payment order');\n    if(!window.Razorpay)throw new Error('Payment checkout is unavailable');\n    const options={key:order.key_id,amount:order.amount,currency:order.currency,name:'Asia Drama',description:title||'Premium episode',order_id:order.order_id,theme:{color:'#ff2942'},handler:async function(response){\n      const vr=await fetch(SUPA_URL+'/functions/v1/verify-razorpay-payment',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPA_KEY},body:JSON.stringify({...response,episode_id:episodeId})});\n      const result=await vr.json();\n      if(!vr.ok||!result.verified)throw new Error(result.error||'Payment verification failed');\n      toast('Payment successful — episode unlocked');\n      const ep=(typeof catalog!=='undefined'?catalog:[]).flatMap(x=>(x.seasons||[]).flatMap(s=>s.episodes||[])).find(e=>e.id===episodeId);\n      if(ep?.video_url)playEpisode(episodeId,ep.title,ep.video_url,false);else toast('Payment verified. Video will be available when published.');\n    },modal:{ondismiss:function(){toast('Payment cancelled')}}};\n    new Razorpay(options).open();\n  }catch(e){toast(e.message||'Payment could not be started')}\n}\n\n'''
-              s = s.replace(marker, fn+marker)
 
-          interaction_fix = r'''<style id="asia-interaction-fix">body{padding-bottom:calc(82px + env(safe-area-inset-bottom));touch-action:manipulation}.nav{bottom:env(safe-area-inset-bottom);height:calc(76px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);padding-left:max(0px,env(safe-area-inset-left));padding-right:max(0px,env(safe-area-inset-right))}.nav button,.icon,.round,.tab,.primary,.secondary,.danger,.link,.setting,.play{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}.nav .plus{flex:0 0 54px;width:54px;height:54px;min-width:54px;min-height:54px;margin:0 2px;position:relative;z-index:3;box-shadow:0 6px 20px rgba(255,41,66,.32)}main{padding-bottom:8px}.overlay{padding-bottom:env(safe-area-inset-bottom)}.sheet{padding-bottom:calc(25px + env(safe-area-inset-bottom))}</style><script>(function(){function show(html){var o=document.getElementById('overlay'),s=document.getElementById('sheet');if(!o||!s)return;s.innerHTML=html;o.classList.add('on')}function quick(){show('<button class="close" onclick="document.getElementById(\'overlay\').classList.remove(\'on\')">×</button><h2>Quick actions</h2><button class="setting" onclick="openSheet(\'search\')"><span>Search</span><b>⌕</b></button><button class="setting" onclick="go(\'series\',1);document.getElementById(\'overlay\').classList.remove(\'on\')"><span>Explore Series</span><b>›</b></button><button class="setting" onclick="go(\'community\',3);document.getElementById(\'overlay\').classList.remove(\'on\')"><span>Community</span><b>♡</b></button><button class="setting" onclick="go(\'profile\',4);document.getElementById(\'overlay\').classList.remove(\'on\')"><span>My Profile</span><b>●</b></button>')}function nav(view,idx){document.querySelectorAll('.view').forEach(function(v){v.classList.toggle('on',v.id===view)});var nb=document.querySelectorAll('.nav button');nb.forEach(function(b,i){b.classList.toggle('on',i===idx)});var tabs=document.querySelectorAll('.tab');tabs.forEach(function(b){b.classList.remove('on')});if(view==='series'||view==='movies')tabs[1]?.classList.add('on');else if(view==='shorts')tabs[3]?.classList.add('on');else if(view==='music')tabs[4]?.classList.add('on');else if(view==='home')tabs[0]?.classList.add('on');window.scrollTo({top:0,behavior:'smooth'})}window.go=function(view,idx){nav(view,Number.isFinite(idx)?idx:0);if(view==='series'&&typeof loadCatalog==='function')loadCatalog();if(view==='profile'&&typeof updateProfile==='function')updateProfile();if(view==='admin'&&typeof loadAdmin==='function')loadAdmin()};document.addEventListener('DOMContentLoaded',function(){var plus=document.querySelector('.nav .plus');if(plus){plus.type='button';plus.setAttribute('aria-label','Quick actions');plus.onclick=function(e){e.preventDefault();e.stopPropagation();quick()}}document.querySelectorAll('.nav button,.actions button,.tab,.primary,.secondary,.danger,.setting,.play,.link,.round').forEach(function(b){b.type='button'})})})();</script>'''
-          s = s.replace('</body>', interaction_fix+'</body>')
-          html.write_text(s)
-          
-          import subprocess
+          # Keep one checkout script and remove stale duplicated runtime patches from older builds.
+          rp = '<script src="https://checkout.razorpay.com/v1/checkout.js"></script>'
+          s = s.replace(rp, '')
+          marker = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
+          s = s.replace(marker, marker + rp, 1)
+          s = re.sub(r'\s*<style id="asia-interaction-fix">.*?</script>', '', s, flags=re.S)
+
+          # Fix the old web checkout typo and make the browser/web build use the same server verification path.
+          s = s.replace('await sb.auth.getSession()', 'await supabase.auth.getSession()')
+          s = s.replace("async function startRazorpay(episodeId,title){", "async function startRazorpay(episodeId,title){")
+
+          # Replace playback/progress code with a resilient implementation: user gesture, buffering/error states,
+          # resume position, completion tracking and safe cleanup.
+          playback = '''async function startRazorpay(episodeId,title){
+            try{
+              const session=await supabase.auth.getSession();
+              const token=session.data.session?.access_token;
+              if(!token)return openSheet('auth');
+              const r=await fetch(SUPA_URL+'/functions/v1/create-razorpay-order',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPA_KEY},body:JSON.stringify({episode_id:episodeId})});
+              const order=await r.json();
+              if(!r.ok)throw new Error(order.error||'Unable to create payment order');
+              if(!window.Razorpay)throw new Error('Payment checkout is unavailable');
+              const options={key:order.key_id,amount:order.amount,currency:order.currency,name:'Asia Drama',description:title||'Premium episode',order_id:order.order_id,theme:{color:'#ff2942'},handler:async function(response){
+                const vr=await fetch(SUPA_URL+'/functions/v1/verify-razorpay-payment',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPA_KEY},body:JSON.stringify({...response,episode_id:episodeId})});
+                const result=await vr.json();
+                if(!vr.ok||!result.verified)throw new Error(result.error||'Payment verification failed');
+                toast('Payment successful — episode unlocked');
+                const ep=(typeof catalog!=='undefined'?catalog:[]).flatMap(x=>(x.seasons||[]).flatMap(s=>s.episodes||[])).find(e=>e.id===episodeId);
+                if(ep?.video_url)playEpisode(episodeId,ep.title,ep.video_url,false);else toast('Payment verified. Video will be available when published.');
+              },modal:{ondismiss:function(){toast('Payment cancelled')}}};
+              new Razorpay(options).open();
+            }catch(e){toast(e.message||'Payment could not be started')}
+          }
+
+          function mediaMessage(message){
+            var old=document.getElementById('mediaStatus');
+            if(!old){old=document.createElement('div');old.id='mediaStatus';old.className='status';var p=document.getElementById('player');if(p)p.appendChild(old)}
+            old.textContent=message;old.style.display=message?'block':'none';
+          }
+
+          async function playEpisode(id,title,url,paid){
+            if(paid){if(!user)return openSheet('auth');return startRazorpay(id,title)}
+            if(!url){toast('This episode has no published video yet');return}
+            currentEpisodeId=id;lastProgressSent=-1;
+            closeSheet();
+            document.getElementById('playerTitle').textContent=title||'Asia Drama';
+            var v=document.getElementById('video');
+            v.pause();v.removeAttribute('src');v.load();v.src=url;v.preload='metadata';v.controls=true;v.playsInline=true;
+            document.getElementById('player').classList.add('on');
+            mediaMessage('Loading video…');
+            v.onloadedmetadata=function(){mediaMessage('');};
+            v.onplaying=function(){mediaMessage('');};
+            v.onwaiting=function(){mediaMessage('Buffering…');};
+            v.onstalled=function(){mediaMessage('Connection is slow — buffering…');};
+            v.onerror=function(){mediaMessage('Video could not be loaded. Check your connection or try again.');};
+            v.ontimeupdate=function(){if(user){var p=Math.floor(v.currentTime);if(p>0&&p%10===0&&p!==lastProgressSent){lastProgressSent=p;saveProgress(id,p,false)}}};
+            v.onended=function(){saveProgress(id,Math.floor(v.duration||v.currentTime),true);mediaMessage('');};
+            v.play().catch(function(){toast('Tap play to start the video');});
+          }
+
+          function resumeEpisode(id){
+            var h=history.find(function(x){return x.episode_id===id});
+            var ep=(typeof catalog!=='undefined'?catalog:[]).flatMap(function(x){return (x.seasons||[]).flatMap(function(s){return s.episodes||[]})}).find(function(e){return e.id===id});
+            if(!ep||!ep.video_url)return toast('This episode is not available to resume yet');
+            playEpisode(id,ep.title,ep.video_url,false);
+            setTimeout(function(){var v=document.getElementById('video');if(h&&!h.completed&&h.position_seconds>0){var seek=function(){try{v.currentTime=Math.min(h.position_seconds,Math.max(0,(v.duration||h.position_seconds)-1))}catch(e){}};if(v.readyState>=1)seek();else v.addEventListener('loadedmetadata',seek,{once:true})}},100);
+          }
+
+          function closePlayer(){
+            var v=document.getElementById('video');
+            if(user&&currentEpisodeId&&v.currentTime>0)saveProgress(currentEpisodeId,Math.floor(v.currentTime),false);
+            v.pause();v.removeAttribute('src');v.load();document.getElementById('player').classList.remove('on');currentEpisodeId='';lastProgressSent=-1;mediaMessage('');
+          }
+
+          async function loadHistory(){
+            if(!user){document.getElementById('continueRow').innerHTML='<div class="empty">Sign in to sync your watch progress.</div>';return}
+            const {data,error}=await supabase.from('watch_history').select('episode_id,position_seconds,completed,last_watched_at,episodes(title,thumbnail_url,duration_seconds)').order('last_watched_at',{ascending:false}).limit(12);
+            if(error){document.getElementById('continueRow').innerHTML='<div class="empty">Watch history is temporarily unavailable.</div>';return}
+            history=data||[];
+            document.getElementById('continueRow').innerHTML=history.map(function(h){return '<article class="card" onclick="resumeEpisode(\\''+h.episode_id+'\\')"><img src="'+safe(h.episodes?.thumbnail_url||demo[0].poster_url)+'" alt="'+safe(h.episodes?.title||'Episode')+'"><div class="info">'+safe(h.episodes?.title||'Episode')+'<small>'+(h.completed?'Completed':'Resume')+' • '+Math.floor((h.position_seconds||0)/60)+' min</small></div></article>'}).join('')||'<div class="empty">Nothing watched yet.</div>';
+          }
+
+          # Replace any existing definitions of the functions above, up to the next stable function boundary.
+          s = re.sub(r'async function startRazorpay\(episodeId,title\).*?function renderHistory\(\)', playback + '\nfunction renderHistory()', s, flags=re.S)
+
+          # Fix My List so it is actually add/remove and persists locally between sessions.
+          list_patch = r'''\n(function(){
+            function getList(){try{return JSON.parse(localStorage.getItem('asiaDramaList')||'[]')}catch(e){return []}}
+            function setList(v){localStorage.setItem('asiaDramaList',JSON.stringify(v))}
+            window.toggleList=function(id,title){var a=getList();var i=a.findIndex(function(x){return x.id===id});if(i>=0){a.splice(i,1);toast('Removed from My List')}else{a.push({id:id,title:title});toast('Added to My List')}setList(a);renderList()};
+            var originalOpenSeries=window.openSeries;
+            window.openSeries=function(id){originalOpenSeries(id);var x=(typeof catalog!=='undefined'?catalog:[]).find(function(a){return a.id===id});if(!x)return;var sh=document.getElementById('sheet');if(!sh)return;var btn=document.createElement('button');btn.className='setting';btn.type='button';btn.innerHTML='<span>My List</span><b>＋</b>';btn.onclick=function(){toggleList(x.id,x.title)};var first=sh.querySelector('h2');if(first)first.insertAdjacentElement('afterend',btn)};
+            window.renderList=function(){var e=document.getElementById('listItems');if(!e)return;var a=getList();e.innerHTML=a.length?a.map(function(x){return '<div class="notice"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>'+safe(x.title)+'</b><button class="secondary" type="button" onclick="toggleList(\\''+x.id+'\\',\\''+safe(x.title).replace(/'/g,'&#39;')+'\\')">Remove</button></div></div>'}).join(''):'<div class="empty">Your list is empty.</div>'};
+          })();
+          '''
+          if 'window.toggleList=function' not in s:
+              s = s.replace('</body>', list_patch + '</body>')
+
+          # Add resilient connection feedback, responsive grids and media sizing. Keep touch targets >= 48px.
+          ux = r'''<style id="asia-runtime-hardening">
+          :root{--safe-bottom:env(safe-area-inset-bottom,0px)}
+          body{padding-bottom:calc(82px + var(--safe-bottom));overflow-x:hidden}
+          .nav{bottom:0;padding-bottom:var(--safe-bottom);height:calc(76px + var(--safe-bottom));}
+          .nav button,.icon,.round,.tab,.primary,.secondary,.danger,.link,.setting,.play,.close{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+          .nav .plus{flex:0 0 54px;width:54px;height:54px;min-width:54px;min-height:54px;margin:0 2px;box-shadow:0 6px 20px rgba(255,41,66,.32)}
+          .player{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+          .playerTop{top:env(safe-area-inset-top);height:64px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+          .player video{width:100%;height:100%;object-fit:contain;max-width:100vw;max-height:100vh}
+          #mediaStatus{position:absolute;z-index:4;left:50%;top:50%;transform:translate(-50%,-50%);margin:0 16px;text-align:center;display:none;background:rgba(0,0,0,.78);border:1px solid #34363e;color:#fff;max-width:90%}
+          @media (min-width:700px){.app{max-width:900px}.nav{width:min(900px,100%)}.sheet{max-width:900px}.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.row .card{flex-basis:190px}.hero{min-height:560px}}
+          @media (max-width:360px){.brand b{font-size:18px}.actions{gap:2px}.icon{width:44px;height:44px}.hero{min-height:460px}.hero h1{font-size:29px}.grid{gap:8px;padding:0 10px}.card{height:205px}.nav button{font-size:9px}}
+          </style>
+          <script>(function(){
+            function updateNetwork(){var online=navigator.onLine!==false;document.documentElement.dataset.network=online?'online':'offline';if(!online)toast('You are offline. Some content may be unavailable.');}
+            window.addEventListener('online',function(){toast('Back online');updateNetwork()});window.addEventListener('offline',updateNetwork);updateNetwork();
+            var v=document.getElementById('video');if(v){v.setAttribute('controls','controls');v.setAttribute('playsinline','');v.preload='metadata'}
+            document.addEventListener('visibilitychange',function(){var vv=document.getElementById('video');if(document.hidden&&user&&currentEpisodeId&&vv.currentTime)saveProgress(currentEpisodeId,Math.floor(vv.currentTime),false)});
+          })();</script>
+          '''
+          s = s.replace('</body>', ux + '</body>')
+
           subprocess.run(['git','diff','--check'],check=True)
+          html.write_text(s)
           PY
       - name: Persist source fixes
         shell: bash
@@ -74,7 +181,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/java/com/hellobaroda/navratri/MainActivity2.java app/src/main/assets/index.html
-            git commit -m "Fix Asia Drama mobile actions and safe-area layout [skip ci]"
+            git commit -m "Harden Asia Drama media and mobile UX [skip ci]"
             git push origin HEAD:app-online
           fi
       - name: Build debug APK
