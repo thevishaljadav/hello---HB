@@ -40,13 +40,15 @@ jobs:
           s = s.replace('rowTitle("Community moments","View trending",()->trending())','rowTitle("Community moments","View trending",v->trending())')
           java.write_text(s)
           
+          bridge = Path('app/src/main/java/com/hellobaroda/navratri/MainActivity2.java')
+          s = bridge.read_text()
+          s = s.replace("const ep=window.catalog?.flatMap(x=>(x.seasons||[]).flatMap(s=>s.episodes||[])).find(e=>e.id===id);", "const ep=(typeof catalog!=='undefined'?catalog:[]).flatMap(x=>(x.seasons||[]).flatMap(s=>s.episodes||[])).find(e=>e.id===id);")
+          bridge.write_text(s)
+          
           html = Path('app/src/main/assets/index.html')
           s = html.read_text()
           s = s.replace('let user=null,catalog=[],history=[];', 'let user=null,history=[];var catalog=[];let currentEpisodeId="",lastProgressSent=-1;')
-          s = s.replace("const ep=window.catalog?.flatMap(x=>(x.seasons||[]).flatMap(s=>s.episodes||[])).find(e=>e.id===id);", "const ep=(typeof catalog!=='undefined'?catalog:[]).flatMap(x=>(x.seasons||[]).flatMap(s=>s.episodes||[])).find(e=>e.id===id);")
-          old = "async function playEpisode(id,title,url,paid){if(paid){if(!user)return openSheet('auth');toast('Payment verification is required before premium playback');return}if(!url){toast('This episode has no published video yet');return}document.getElementById('playerTitle').textContent=title;const v=document.getElementById('video');v.src=url;document.getElementById('player').classList.add('on');v.play().catch(()=>{});v.ontimeupdate=()=>{if(user&&Math.floor(v.currentTime)%10===0)saveProgress(id,Math.floor(v.currentTime),false)}}"
-          new = "async function playEpisode(id,title,url,paid){if(paid){if(!user)return openSheet('auth');toast('Payment verification is required before premium playback');return}if(!url){toast('This episode has no published video yet');return}currentEpisodeId=id;lastProgressSent=-1;document.getElementById('playerTitle').textContent=title;const v=document.getElementById('video');v.src=url;document.getElementById('player').classList.add('on');v.play().catch(()=>{});v.ontimeupdate=()=>{if(user){const p=Math.floor(v.currentTime);if(p>0&&p%10===0&&p!==lastProgressSent){lastProgressSent=p;saveProgress(id,p,false)}}};v.onended=()=>saveProgress(id,Math.floor(v.duration||v.currentTime),true)}"
-          s = s.replace(old,new)
+          s = s.replace("async function playEpisode(id,title,url,paid){if(paid){if(!user)return openSheet('auth');toast('Payment verification is required before premium playback');return}if(!url){toast('This episode has no published video yet');return}document.getElementById('playerTitle').textContent=title;const v=document.getElementById('video');v.src=url;document.getElementById('player').classList.add('on');v.play().catch(()=>{});v.ontimeupdate=()=>{if(user&&Math.floor(v.currentTime)%10===0)saveProgress(id,Math.floor(v.currentTime),false)}}", "async function playEpisode(id,title,url,paid){if(paid){if(!user)return openSheet('auth');toast('Payment verification is required before premium playback');return}if(!url){toast('This episode has no published video yet');return}currentEpisodeId=id;lastProgressSent=-1;document.getElementById('playerTitle').textContent=title;const v=document.getElementById('video');v.src=url;document.getElementById('player').classList.add('on');v.play().catch(()=>{});v.ontimeupdate=()=>{if(user){const p=Math.floor(v.currentTime);if(p>0&&p%10===0&&p!==lastProgressSent){lastProgressSent=p;saveProgress(id,p,false)}}};v.onended=()=>saveProgress(id,Math.floor(v.duration||v.currentTime),true)}")
           s = s.replace("function closePlayer(){const v=document.getElementById('video');v.pause();v.removeAttribute('src');v.load();document.getElementById('player').classList.remove('on')}", "function closePlayer(){const v=document.getElementById('video');if(user&&currentEpisodeId&&v.currentTime>0)saveProgress(currentEpisodeId,Math.floor(v.currentTime),false);v.pause();v.removeAttribute('src');v.load();document.getElementById('player').classList.remove('on');currentEpisodeId='';lastProgressSent=-1}")
           s = s.replace("function shareApp(){if(navigator.share)navigator.share({title:'Asia Drama',text:'Stories worth staying for.'}).catch(()=>{});else toast('Share link copied soon')}", "async function shareApp(){const data={title:'Asia Drama',text:'Stories worth staying for.',url:location.href};if(navigator.share){try{await navigator.share(data)}catch(e){}}else{try{await navigator.clipboard.writeText(location.href);toast('Link copied')}catch(e){toast('Share link: '+location.href)}}}")
           s = s.replace("document.addEventListener('visibilitychange',()=>{if(document.hidden&&document.getElementById('video').currentTime)saveProgress('current',Math.floor(document.getElementById('video').currentTime),false)});", "document.addEventListener('visibilitychange',()=>{const v=document.getElementById('video');if(document.hidden&&user&&currentEpisodeId&&v.currentTime)saveProgress(currentEpisodeId,Math.floor(v.currentTime),false)});")
@@ -61,7 +63,7 @@ jobs:
           if ! git diff --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/assets/index.html
+            git add app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/java/com/hellobaroda/navratri/MainActivity2.java app/src/main/assets/index.html
             git commit -m "Fix Asia Drama playback and source issues [skip ci]"
             git push origin HEAD:app-online
           fi
