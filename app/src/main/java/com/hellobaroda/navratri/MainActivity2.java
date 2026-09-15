@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MainActivity2 extends Activity {
+    private static final String API_BASE = "https://wevutronudkcqbzmverf.supabase.co/functions/v1";
     private WebView web;
     private BillingClient billingClient;
     private final Map<String, Purchase> pendingPurchases = new HashMap<>();
@@ -51,11 +52,22 @@ public class MainActivity2 extends Activity {
         s.setAllowFileAccess(true);
         s.setAllowContentAccess(false);
         s.setMediaPlaybackRequiresUserGesture(false);
-        web.setWebViewClient(new WebViewClient());
         web.addJavascriptInterface(new NativeBridge(), "Android");
+        web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) { super.onPageFinished(view, url); injectPurchaseBridge(); }
+        });
         setContentView(web);
         web.loadUrl("file:///android_asset/index.html");
         setupBilling();
+    }
+
+    private void injectPurchaseBridge() {
+        String js = "(function(){"
+                + "window.onPlayPurchase=async function(productId,token){try{const s=await window.supabase.auth.getSession();const a=s.data.session?.access_token;if(!a){window.toast&&window.toast('Please sign in before purchasing.');return;}const r=await fetch('" + API_BASE + "/verify-play-purchase',{method:'POST',headers:{Authorization:'Bearer '+a,'Content-Type':'application/json'},body:JSON.stringify({product_id:productId,purchase_token:token})});const j=await r.json();if(!r.ok||!j.verified){window.toast&&window.toast(j.error||'Purchase could not be verified.');return;}window.toast&&window.toast('Purchase verified. Access unlocked.');window.onPlayPurchaseVerified&&window.onPlayPurchaseVerified(j.episode_id);Android.acknowledge(token);}catch(e){window.toast&&window.toast('Purchase verification failed.');}};"
+                + "if(window.playEpisode&&!window.__playWrapped){window.__playWrapped=true;const original=window.playEpisode;window.playEpisode=function(id,title,url,paid){if(paid){if(!window.Android){window.toast&&window.toast('Google Play is unavailable');return;}const ep=window.catalog?.flatMap(x=>(x.seasons||[]).flatMap(s=>s.episodes||[])).find(e=>e.id===id);Android.buy(ep?.play_product_id||id);return;}return original.apply(this,arguments);};}"
+                + "window.handleAndroidBack=window.handleAndroidBack||function(){const p=document.getElementById('player'),o=document.getElementById('overlay');if(p?.classList.contains('on')){window.closePlayer();return true;}if(o?.classList.contains('on')){window.closeSheet();return true;}return false;};"
+                + "})();";
+        web.evaluateJavascript(js, null);
     }
 
     private void setupBilling() {
@@ -71,7 +83,7 @@ public class MainActivity2 extends Activity {
             if (result.getResponseCode() == BillingClient.BillingResponseCode.OK && purchases != null) {
                 for (Purchase purchase : purchases) for (String productId : purchase.getProducts()) {
                     pendingPurchases.put(purchase.getPurchaseToken(), purchase);
-                    runJs("window.onExistingPlayPurchase && window.onExistingPlayPurchase(" + js(productId) + "," + js(purchase.getPurchaseToken()) + ")");
+                    runJs("window.onPlayPurchase && window.onPlayPurchase(" + js(productId) + "," + js(purchase.getPurchaseToken()) + ")");
                 }
             }
         });
@@ -81,7 +93,7 @@ public class MainActivity2 extends Activity {
         if (billingClient == null || !billingClient.isReady()) { Toast.makeText(this, "Google Play is connecting. Try again.", Toast.LENGTH_SHORT).show(); return; }
         QueryProductDetailsParams params = QueryProductDetailsParams.newBuilder().setProductList(Arrays.asList(QueryProductDetailsParams.Product.newBuilder().setProductId(productId).setProductType(BillingClient.ProductType.INAPP).build())).build();
         billingClient.queryProductDetailsAsync(params, (result, details) -> {
-            if (result.getResponseCode() != BillingClient.BillingResponseCode.OK || details.getProductDetailsList().isEmpty()) { runJs("window.onPlayPurchaseError && window.onPlayPurchaseError('Product is not available on Google Play yet.')"); return; }
+            if (result.getResponseCode() != BillingClient.BillingResponseCode.OK || details.getProductDetailsList().isEmpty()) { runJs("window.toast && window.toast('Product is not available on Google Play yet.')"); return; }
             ProductDetails pd = details.getProductDetailsList().get(0);
             BillingFlowParams flow = BillingFlowParams.newBuilder().setProductDetailsParamsList(Arrays.asList(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(pd).build())).build();
             billingClient.launchBillingFlow(this, flow);
