@@ -8,12 +8,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
+        with:
+          packages: ''
       - name: Accept Android SDK licenses
         shell: bash
         run: |
@@ -24,10 +26,6 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Apply Java compatibility fix
-        run: |
-          sed -i 's/rowTitle("Popular Garba Grounds","See all",()->grounds())/rowTitle("Popular Garba Grounds","See all",v->grounds())/' app/src/main/java/com/hellobaroda/navratri/MainActivity.java
-          sed -i 's/rowTitle("Community moments","View trending",()->trending())/rowTitle("Community moments","View trending",v->trending())/' app/src/main/java/com/hellobaroda/navratri/MainActivity.java
       - name: Build debug APK
         run: gradle :app:assembleDebug
       - uses: actions/upload-artifact@v4
