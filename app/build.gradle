@@ -2,11 +2,11 @@ plugins { id 'com.android.application' }
 
 android {
     namespace 'com.hellobaroda.navratri'
-    compileSdk 35
+    compileSdk 36
     defaultConfig {
         applicationId 'com.hellobaroda.navratri'
         minSdk 23
-        targetSdk 35
+        targetSdk 36
         versionCode 3
         versionName '2.0'
     }
