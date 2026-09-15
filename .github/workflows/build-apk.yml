@@ -37,13 +37,14 @@ jobs:
           python3 tools/patch_cms_overlay.py
           python3 tools/patch_admin_entry.py
           python3 tools/patch_interaction_auth.py
+          python3 tools/patch_final_navigation.py
       - name: Persist source fixes
         shell: bash
         run: |
           if ! git diff --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/java/com/hellobaroda/navratri/MainActivity2.java app/src/main/assets/index.html tools/repair_html_runtime.py tools/patch_visual_hardening.py tools/patch_cms_overlay.py tools/patch_admin_entry.py tools/normalize_cms_overlay.py tools/patch_interaction_auth.py
+            git add app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/java/com/hellobaroda/navratri/MainActivity2.java app/src/main/assets/index.html tools/repair_html_runtime.py tools/patch_visual_hardening.py tools/patch_cms_overlay.py tools/patch_admin_entry.py tools/normalize_cms_overlay.py tools/patch_interaction_auth.py tools/patch_final_navigation.py
             git commit -m "Fix Asia Drama WebView interaction and authentication [skip ci]"
             git push origin HEAD:app-online
           fi
