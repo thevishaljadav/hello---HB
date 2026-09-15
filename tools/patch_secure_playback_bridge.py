@@ -13,4 +13,7 @@ if old in s:
 elif 'window.__asiaSecurePlaybackBridge=' not in s:
     raise SystemExit('secure playback bridge target not found')
 
+# Remove the accidental standalone quote left by older generated versions.
+s = s.replace('                + "\\"\n', '')
+
 p.write_text(s)
