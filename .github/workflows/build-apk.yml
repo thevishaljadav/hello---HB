@@ -33,6 +33,7 @@ jobs:
           python3 tools/patch_runtime_extras.py
           python3 tools/repair_html_runtime.py
           python3 tools/patch_visual_hardening.py
+          python3 tools/normalize_production_cms_patch.py
           python3 tools/patch_production_cms.py
           python3 tools/patch_playback_bridge.py
       - name: Persist source fixes
@@ -41,7 +42,7 @@ jobs:
           if ! git diff --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/java/com/hellobaroda/navratri/MainActivity2.java app/src/main/assets/index.html tools/repair_html_runtime.py tools/patch_visual_hardening.py tools/patch_production_cms.py tools/patch_playback_bridge.py
+            git add app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/java/com/hellobaroda/navratri/MainActivity2.java app/src/main/assets/index.html tools/repair_html_runtime.py tools/patch_visual_hardening.py tools/patch_production_cms.py tools/patch_playback_bridge.py tools/normalize_production_cms_patch.py
             git commit -m "Apply Asia Drama production CMS and playback hardening [skip ci]"
             git push origin HEAD:app-online
           fi
