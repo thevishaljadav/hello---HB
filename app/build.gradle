@@ -3,12 +3,42 @@ plugins { id 'com.android.application' }
 android {
     namespace 'com.hellobaroda.navratri'
     compileSdk 36
+
     defaultConfig {
         applicationId 'com.hellobaroda.navratri'
         minSdk 23
         targetSdk 36
-        versionCode 4
-        versionName '2.1'
+        versionCode 5
+        versionName '2.2'
+    }
+
+    signingConfigs {
+        release {
+            def ks = System.getenv('ANDROID_KEYSTORE_PATH')
+            def kp = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            def ka = System.getenv('ANDROID_KEY_ALIAS')
+            def kpass = System.getenv('ANDROID_KEY_PASSWORD')
+            if (ks && kp && ka && kpass) {
+                storeFile file(ks)
+                storePassword kp
+                keyAlias ka
+                keyPassword kpass
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+        release {
+            minifyEnabled false
+            shrinkResources false
+            if (System.getenv('ANDROID_KEYSTORE_PATH')) {
+                signingConfig signingConfigs.release
+            }
+        }
     }
 }
 
