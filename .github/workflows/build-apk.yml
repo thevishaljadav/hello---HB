@@ -50,8 +50,45 @@ jobs:
             git commit -m "Update Asia Drama WebView and live catalogue sync [skip ci]"
             git push origin HEAD:app-online
           fi
+      - name: Configure release signing when credentials are present
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/asia-drama-release.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/asia-drama-release.jks" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "Release signing credentials detected."
+          else
+            echo "No release keystore configured; release artifacts will be unsigned test artifacts."
+          fi
+      - name: Run Android lint
+        run: gradle :app:lintDebug
       - name: Build debug APK
         run: gradle :app:assembleDebug
+      - name: Build release APK and AAB
+        run: gradle :app:assembleRelease :app:bundleRelease
+      - name: Verify release artifacts
+        shell: bash
+        run: |
+          ls -lh app/build/outputs/apk/release/ app/build/outputs/bundle/release/
+          if [ -n "${ANDROID_KEYSTORE_PATH:-}" ]; then
+            $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose app/build/outputs/apk/release/app-release.apk
+          else
+            echo "Unsigned release artifact: configure Android signing secrets before Play submission."
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Asia-Drama-release-bundle
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/bundle/release/app-release.aab
       - uses: actions/upload-artifact@v4
         with:
           name: Asia-Drama-debug-apk
