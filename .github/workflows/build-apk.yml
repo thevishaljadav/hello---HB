@@ -28,7 +28,9 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Patch and validate source
-        run: python3 tools/patch_asia_drama.py
+        run: |
+          python3 tools/patch_asia_drama.py
+          python3 tools/patch_runtime_extras.py
       - name: Persist source fixes
         shell: bash
         run: |
