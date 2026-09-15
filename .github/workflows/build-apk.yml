@@ -50,19 +50,17 @@ jobs:
           html = Path('app/src/main/assets/index.html')
           s = html.read_text()
 
-          # Keep one checkout script and remove stale duplicated runtime patches from older builds.
+          # Clean up repeated patches from older workflow runs.
           rp = '<script src="https://checkout.razorpay.com/v1/checkout.js"></script>'
           s = s.replace(rp, '')
           marker = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
           s = s.replace(marker, marker + rp, 1)
           s = re.sub(r'\s*<style id="asia-interaction-fix">.*?</script>', '', s, flags=re.S)
+          s = re.sub(r'\s*<style id="asia-runtime-hardening">.*?</script>', '', s, flags=re.S)
 
-          # Fix the old web checkout typo and make the browser/web build use the same server verification path.
+          # Keep web checkout on the same authenticated server verification path.
           s = s.replace('await sb.auth.getSession()', 'await supabase.auth.getSession()')
-          s = s.replace("async function startRazorpay(episodeId,title){", "async function startRazorpay(episodeId,title){")
 
-          # Replace playback/progress code with a resilient implementation: user gesture, buffering/error states,
-          # resume position, completion tracking and safe cleanup.
           playback = '''async function startRazorpay(episodeId,title){
             try{
               const session=await supabase.auth.getSession();
@@ -93,21 +91,15 @@ jobs:
           async function playEpisode(id,title,url,paid){
             if(paid){if(!user)return openSheet('auth');return startRazorpay(id,title)}
             if(!url){toast('This episode has no published video yet');return}
-            currentEpisodeId=id;lastProgressSent=-1;
-            closeSheet();
+            currentEpisodeId=id;lastProgressSent=-1;closeSheet();
             document.getElementById('playerTitle').textContent=title||'Asia Drama';
-            var v=document.getElementById('video');
-            v.pause();v.removeAttribute('src');v.load();v.src=url;v.preload='metadata';v.controls=true;v.playsInline=true;
-            document.getElementById('player').classList.add('on');
-            mediaMessage('Loading video…');
-            v.onloadedmetadata=function(){mediaMessage('');};
-            v.onplaying=function(){mediaMessage('');};
-            v.onwaiting=function(){mediaMessage('Buffering…');};
-            v.onstalled=function(){mediaMessage('Connection is slow — buffering…');};
-            v.onerror=function(){mediaMessage('Video could not be loaded. Check your connection or try again.');};
+            var v=document.getElementById('video');v.pause();v.removeAttribute('src');v.load();v.src=url;v.preload='metadata';v.controls=true;v.playsInline=true;
+            document.getElementById('player').classList.add('on');mediaMessage('Loading video…');
+            v.onloadedmetadata=function(){mediaMessage('')};v.onplaying=function(){mediaMessage('')};v.onwaiting=function(){mediaMessage('Buffering…')};v.onstalled=function(){mediaMessage('Connection is slow — buffering…')};
+            v.onerror=function(){mediaMessage('Video could not be loaded. Check your connection or try again.')};
             v.ontimeupdate=function(){if(user){var p=Math.floor(v.currentTime);if(p>0&&p%10===0&&p!==lastProgressSent){lastProgressSent=p;saveProgress(id,p,false)}}};
-            v.onended=function(){saveProgress(id,Math.floor(v.duration||v.currentTime),true);mediaMessage('');};
-            v.play().catch(function(){toast('Tap play to start the video');});
+            v.onended=function(){saveProgress(id,Math.floor(v.duration||v.currentTime),true);mediaMessage('')};
+            v.play().catch(function(){toast('Tap play to start the video')});
           }
 
           function resumeEpisode(id){
@@ -119,8 +111,7 @@ jobs:
           }
 
           function closePlayer(){
-            var v=document.getElementById('video');
-            if(user&&currentEpisodeId&&v.currentTime>0)saveProgress(currentEpisodeId,Math.floor(v.currentTime),false);
+            var v=document.getElementById('video');if(user&&currentEpisodeId&&v.currentTime>0)saveProgress(currentEpisodeId,Math.floor(v.currentTime),false);
             v.pause();v.removeAttribute('src');v.load();document.getElementById('player').classList.remove('on');currentEpisodeId='';lastProgressSent=-1;mediaMessage('');
           }
 
@@ -131,11 +122,8 @@ jobs:
             history=data||[];
             document.getElementById('continueRow').innerHTML=history.map(function(h){return '<article class="card" onclick="resumeEpisode(\\''+h.episode_id+'\\')"><img src="'+safe(h.episodes?.thumbnail_url||demo[0].poster_url)+'" alt="'+safe(h.episodes?.title||'Episode')+'"><div class="info">'+safe(h.episodes?.title||'Episode')+'<small>'+(h.completed?'Completed':'Resume')+' • '+Math.floor((h.position_seconds||0)/60)+' min</small></div></article>'}).join('')||'<div class="empty">Nothing watched yet.</div>';
           }
-
-          # Replace any existing definitions of the functions above, up to the next stable function boundary.
           s = re.sub(r'async function startRazorpay\(episodeId,title\).*?function renderHistory\(\)', playback + '\nfunction renderHistory()', s, flags=re.S)
 
-          # Fix My List so it is actually add/remove and persists locally between sessions.
           list_patch = r'''\n(function(){
             function getList(){try{return JSON.parse(localStorage.getItem('asiaDramaList')||'[]')}catch(e){return []}}
             function setList(v){localStorage.setItem('asiaDramaList',JSON.stringify(v))}
@@ -148,11 +136,52 @@ jobs:
           if 'window.toggleList=function' not in s:
               s = s.replace('</body>', list_patch + '</body>')
 
-          # Add resilient connection feedback, responsive grids and media sizing. Keep touch targets >= 48px.
+          product_patch = r'''\n(function(){
+            window.loadCommunity=async function(){
+              var box=document.getElementById('communityList');if(!box)return;
+              var r=await supabase.from('posts').select('id,caption,created_at,user_id').order('created_at',{ascending:false}).limit(30);
+              if(r.error){box.innerHTML='<div class="empty">Community is temporarily unavailable.</div>';return}
+              var rows=r.data||[];box.innerHTML=rows.map(function(p){return '<article class="post"><b>Community member</b><p>'+safe(p.caption||'')+'</p><div class="small">'+new Date(p.created_at).toLocaleString()+'</div></article>'}).join('')||'<div class="empty">No community posts yet.</div>';
+            };
+            window.createPost=async function(){
+              if(!user)return openSheet('auth');
+              var el=document.getElementById('postText'),t=(el?.value||'').trim();if(!t)return toast('Write something first');
+              if(t.length>1000)return toast('Keep your post under 1000 characters');
+              var r=await supabase.from('posts').insert({user_id:user.id,caption:t,media_type:'text'}).select('id').single();
+              if(r.error)return toast(r.error.message||'Post could not be published');
+              closeSheet();toast('Post published');loadCommunity();
+            };
+            var baseBoot=window.boot;
+            window.boot=async function(){await baseBoot();await loadCommunity();};
+
+            window.loadAdmin=async function(){
+              if(!user)return openSheet('auth');
+              var role=await supabase.from('admin_roles').select('role').eq('user_id',user.id).limit(1).maybeSingle();
+              if(!role.data)return toast('Admin access required');
+              var sh=document.getElementById('adminSeries');
+              var series=(await supabase.from('series').select('id,title,status,language').order('created_at',{ascending:false})).data||[];
+              var seasons=(await supabase.from('seasons').select('id,series_id,season_number,title').order('season_number')).data||[];
+              var episodes=(await supabase.from('episodes').select('id,season_id,episode_number,title,status,access_type,price_paise,play_product_id').order('episode_number')).data||[];
+              var seriesOpts=series.map(function(x){return '<option value="'+x.id+'">'+safe(x.title)+'</option>'}).join('');
+              var seasonOpts=seasons.map(function(x){var sn=series.find(function(s){return s.id===x.series_id});return '<option value="'+x.id+'">'+safe(sn?.title||'Series')+' • S'+x.season_number+'</option>'}).join('');
+              sh.innerHTML='<div class="panel"><b>Content manager</b><p class="small">Create and publish catalogue metadata. Store media in an approved CDN/storage bucket and paste its HTTPS URL here.</p></div>'+
+                '<div class="panel"><h3>Add series</h3><input id="admSeriesTitle" class="field" placeholder="Series title"><input id="admSeriesPoster" class="field" placeholder="Poster HTTPS URL"><input id="admSeriesGenre" class="field" placeholder="Genre"><input id="admSeriesLang" class="field" placeholder="Language"><textarea id="admSeriesDesc" class="field area" placeholder="Description"></textarea><button class="primary" onclick="adminAddSeries()">Create series</button></div>'+
+                '<div class="panel"><h3>Add season</h3><select id="admSeasonSeries" class="field">'+seriesOpts+'</select><input id="admSeasonNumber" class="field" type="number" min="1" value="1"><input id="admSeasonTitle" class="field" placeholder="Season title"><button class="primary" onclick="adminAddSeason()">Create season</button></div>'+
+                '<div class="panel"><h3>Add episode</h3><select id="admEpisodeSeason" class="field">'+seasonOpts+'</select><input id="admEpisodeNumber" class="field" type="number" min="1" value="1"><input id="admEpisodeTitle" class="field" placeholder="Episode title"><input id="admEpisodeVideo" class="field" placeholder="Video HTTPS URL"><input id="admEpisodeThumb" class="field" placeholder="Thumbnail HTTPS URL"><select id="admEpisodeAccess" class="field"><option value="free">Free</option><option value="pay_per_episode">Pay per episode</option><option value="subscription_only">Subscription only</option><option value="coming_soon">Coming soon</option></select><input id="admEpisodePrice" class="field" type="number" min="0" placeholder="Price in paise (e.g. 9900)"><input id="admEpisodePlayProduct" class="field" placeholder="Google Play product ID (optional)"><select id="admEpisodeStatus" class="field"><option value="draft">Draft</option><option value="published">Published</option></select><button class="primary" onclick="adminAddEpisode()">Create episode</button></div>'+
+                '<div class="panel"><b>Current catalogue</b>'+series.map(function(x){return '<div class="notice"><b>'+safe(x.title)+'</b><div class="small">'+safe(x.status)+' • '+safe(x.language||'')+'</div></div>'}).join('')+'</div>';
+            };
+            window.adminAddSeries=async function(){var r=await supabase.from('series').insert({title:document.getElementById('admSeriesTitle').value.trim(),poster_url:document.getElementById('admSeriesPoster').value.trim()||null,genre:document.getElementById('admSeriesGenre').value.trim()||null,language:document.getElementById('admSeriesLang').value.trim()||null,description:document.getElementById('admSeriesDesc').value.trim()||null,status:'draft',created_by:user.id}).select('id').single();if(r.error)return toast(r.error.message);toast('Series created as draft');loadAdmin()};
+            window.adminAddSeason=async function(){var r=await supabase.from('seasons').insert({series_id:document.getElementById('admSeasonSeries').value,season_number:Number(document.getElementById('admSeasonNumber').value),title:document.getElementById('admSeasonTitle').value.trim()||null}).select('id').single();if(r.error)return toast(r.error.message);toast('Season created');loadAdmin()};
+            window.adminAddEpisode=async function(){var r=await supabase.from('episodes').insert({season_id:document.getElementById('admEpisodeSeason').value,episode_number:Number(document.getElementById('admEpisodeNumber').value),title:document.getElementById('admEpisodeTitle').value.trim(),video_url:document.getElementById('admEpisodeVideo').value.trim()||null,thumbnail_url:document.getElementById('admEpisodeThumb').value.trim()||null,access_type:document.getElementById('admEpisodeAccess').value,price_paise:Number(document.getElementById('admEpisodePrice').value)||null,play_product_id:document.getElementById('admEpisodePlayProduct').value.trim()||null,status:document.getElementById('admEpisodeStatus').value,content_type:'episode'}).select('id').single();if(r.error)return toast(r.error.message);toast('Episode created');loadAdmin()};
+          })();
+          '''
+          if 'window.loadCommunity=async function' not in s:
+              s = s.replace('</body>', product_patch + '</body>')
+
           ux = r'''<style id="asia-runtime-hardening">
           :root{--safe-bottom:env(safe-area-inset-bottom,0px)}
           body{padding-bottom:calc(82px + var(--safe-bottom));overflow-x:hidden}
-          .nav{bottom:0;padding-bottom:var(--safe-bottom);height:calc(76px + var(--safe-bottom));}
+          .nav{bottom:0;padding-bottom:var(--safe-bottom);height:calc(76px + var(--safe-bottom))}
           .nav button,.icon,.round,.tab,.primary,.secondary,.danger,.link,.setting,.play,.close{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
           .nav .plus{flex:0 0 54px;width:54px;height:54px;min-width:54px;min-height:54px;margin:0 2px;box-shadow:0 6px 20px rgba(255,41,66,.32)}
           .player{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
@@ -166,13 +195,12 @@ jobs:
             function updateNetwork(){var online=navigator.onLine!==false;document.documentElement.dataset.network=online?'online':'offline';if(!online)toast('You are offline. Some content may be unavailable.');}
             window.addEventListener('online',function(){toast('Back online');updateNetwork()});window.addEventListener('offline',updateNetwork);updateNetwork();
             var v=document.getElementById('video');if(v){v.setAttribute('controls','controls');v.setAttribute('playsinline','');v.preload='metadata'}
-            document.addEventListener('visibilitychange',function(){var vv=document.getElementById('video');if(document.hidden&&user&&currentEpisodeId&&vv.currentTime)saveProgress(currentEpisodeId,Math.floor(vv.currentTime),false)});
           })();</script>
           '''
           s = s.replace('</body>', ux + '</body>')
 
-          subprocess.run(['git','diff','--check'],check=True)
           html.write_text(s)
+          subprocess.run(['git','diff','--check'],check=True)
           PY
       - name: Persist source fixes
         shell: bash
@@ -181,7 +209,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/java/com/hellobaroda/navratri/MainActivity2.java app/src/main/assets/index.html
-            git commit -m "Harden Asia Drama media and mobile UX [skip ci]"
+            git commit -m "Complete Asia Drama community and admin workflows [skip ci]"
             git push origin HEAD:app-online
           fi
       - name: Build debug APK
