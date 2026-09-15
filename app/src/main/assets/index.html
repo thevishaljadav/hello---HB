@@ -28,7 +28,7 @@ img,video,audio{max-width:100%}
 <main id="admin" class="view"><div class="head"><h2>Business dashboard</h2><button class="link" onclick="loadAdmin()">Refresh</button></div><div class="adminBox"><b>Content operations</b><p class="small">Publish only licensed content. Payment secrets and service-role credentials never belong in this app.</p><button class="primary" onclick="openSheet('adminHelp')">Admin workflow</button></div><div id="adminSeries"></div></main></div>
 <nav class="nav"><button class="on" onclick="go('home',0,this)">⌂<span>Home</span></button><button onclick="go('series',1,this)">▦<span>Explore</span></button><button class="plus" onclick="openSheet('search')">+</button><button onclick="go('community',3,this)">♡<span>Community</span></button><button onclick="go('profile',4,this)">●<span>Profile</span></button></nav><div class="overlay" id="overlay" onclick="if(event.target===this)closeSheet()"><section class="sheet" id="sheet"></section></div><div class="player" id="player"><div class="playerTop"><button class="round" onclick="closePlayer()">‹</button><strong id="playerTitle">Asia Drama</strong><button class="round" onclick="toast('Player controls')">⋯</button></div><video id="video" controls playsinline preload="metadata"></video></div><div class="toast" id="toast"></div>
 <script>
-const SUPA_URL='https://wevutronudkcqbzmverf.supabase.co';const SUPA_KEY='sb_publishable_St3gO8iFD5Y5DyepQuzS_w_tAbcvTD1';const API=SUPA_URL+'/functions/v1';const supabase=window.supabase.createClient(SUPA_URL,SUPA_KEY);let user=null,history=[];var catalog=[];let currentEpisodeId="",lastProgressSent=-1;
+const SUPA_URL='https://wevutronudkcqbzmverf.supabase.co';const SUPA_KEY='sb_publishable_St3gO8iFD5Y5DyepQuzS_w_tAbcvTD1';const API=SUPA_URL+'/functions/v1';const supabase=window.supabase?window.supabase.createClient(SUPA_URL,SUPA_KEY):null;let user=null,history=[];var catalog=[];let currentEpisodeId="",lastProgressSent=-1;
 const demo=[{id:'demo1',title:'Winter Again',description:'A new beginning, old promises and a city full of secrets.',poster_url:'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80',genre:'Drama',language:'Korean',age_rating:'13+',status:'published',seasons:[]},{id:'demo2',title:'Midnight Letters',description:'Two lives connected by messages that arrive at the wrong time.',poster_url:'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80',genre:'Romance',language:'Japanese',age_rating:'13+',status:'published',seasons:[]},{id:'demo3',title:'The Last Monsoon',description:'Family, ambition and one season that changes everything.',poster_url:'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=600&q=80',genre:'Family',language:'Hindi',age_rating:'U/A 13+',status:'published',seasons:[]},{id:'demo4',title:'City of Lights',description:'A young creator finds a second chance in a new city.',poster_url:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',genre:'Drama',language:'English',age_rating:'16+',status:'published',seasons:[]}];
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.__t);window.__t=setTimeout(()=>e.style.display='none',2400)}function go(id,nav){document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));const e=document.getElementById(id);if(e)e.classList.add('on');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('on'));if(typeof nav==='number'&&document.querySelectorAll('.nav button')[nav])document.querySelectorAll('.nav button')[nav].classList.add('on');window.scrollTo({top:0,behavior:'smooth'});if(id==='admin')loadAdmin()}function closeSheet(){document.getElementById('overlay').classList.remove('on')}function openSheet(type){const s=document.getElementById('sheet');let h='<button class="close" onclick="closeSheet()">×</button>';if(type==='auth')h+='<h2>Account</h2><input id="email" class="field" type="email" placeholder="Email address" autocomplete="email"><input id="password" class="field" type="password" placeholder="Password" autocomplete="current-password"><button class="primary" onclick="signIn()">Sign in</button><button class="secondary" style="margin-left:6px" onclick="signUp()">Create account</button><p class="small">By creating an account you agree to our Terms and Privacy Policy.</p>';else if(type==='search')h+='<h2>Search</h2><input id="searchBox" class="field" placeholder="Search series, movies and stories" oninput="searchCatalog(this.value)" autofocus><div id="searchResults"></div>';else if(type==='notice')h+='<h2>Notifications</h2><div class="notice">You will see release, purchase and account notifications here.</div>';else if(type==='list')h+='<h2>My List</h2><div id="listItems">Your saved titles will appear here.</div>';else if(type==='history')h+='<h2>Watch history</h2><div id="historyItems">Loading…</div>';else if(type==='purchases')h+='<h2>Purchases & subscriptions</h2><div class="notice">Digital purchases are verified by the applicable payment provider before access is granted.</div><div class="notice">Android Play-distributed digital content uses Google Play Billing. Web payments can use an approved gateway.</div>';else if(type==='settings')h+='<h2>Settings & privacy</h2><button class="setting" onclick="signOut()"><span>Sign out</span><b>›</b></button><button class="setting" onclick="openSheet(\'delete\')"><span>Delete account</span><b>›</b></button><button class="setting" onclick="toast(\'Playback preferences saved locally\')"><span>Playback preferences</span><b>›</b></button>';else if(type==='delete')h+='<h2>Delete account</h2><p class="legal">Deleting your account removes your app profile, watch history, entitlements and account-owned data. Certain financial, security or tax records may need to be retained where legally required.</p><button class="danger" onclick="deleteAccount()">Permanently delete account</button>';else if(type==='legal')h+='<h2>Legal & privacy</h2><div class="legal"><h3>Privacy Policy</h3><p>Asia Drama uses account, playback and transaction information to provide the service, secure accounts, prevent fraud, support purchases and improve the product. We do not request device permissions that are unnecessary for the core service.</p><h3>Terms of Service</h3><p>Use only content made available through the service. Do not copy, redistribute, reverse engineer or misuse the platform. Availability, pricing and catalogue rights may vary by territory.</p><h3>Payments & refunds</h3><p>Payment status is confirmed server-side. Refunds are handled according to the applicable payment provider, store policy and our published refund terms.</p><h3>Community rules</h3><p>No harassment, hate, sexual exploitation, illegal content, copyright infringement, spam or impersonation. Report content that violates these rules.</p><h3>Account deletion</h3><p>You can request deletion inside the app. A public account-deletion web resource will also be maintained for Play Store compliance.</p></div>';else if(type==='create')h+='<h2>Create post</h2><textarea id="postText" class="field area" placeholder="Share something respectful…"></textarea><button class="primary" onclick="createPost()">Publish</button>';else if(type==='adminHelp')h+='<h2>Admin workflow</h2><div class="legal"><p>1. Upload only licensed assets. 2. Create series and seasons. 3. Add episodes and access rules. 4. Configure Play product IDs for Android digital products. 5. Publish only after QA. 6. Grant complimentary access through the audited admin endpoint.</p></div>';else h+='<h2>Asia Drama</h2><p class="muted">Feature unavailable.</p>';s.innerHTML=h;document.getElementById('overlay').classList.add('on');if(type==='history')renderHistory();if(type==='list')renderList()}
 async function signIn(){const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;if(!email||!password)return toast('Enter email and password');const {error}=await supabase.auth.signInWithPassword({email,password});if(error)return toast(error.message);closeSheet();toast('Signed in');await boot()}async function signUp(){const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;if(password.length<8)return toast('Use at least 8 characters');const {error}=await supabase.auth.signUp({email,password});if(error)return toast(error.message);closeSheet();toast('Check your email to verify your account')}async function signOut(){await supabase.auth.signOut();closeSheet();await boot();toast('Signed out')}async function deleteAccount(){if(!user)return;const {data:{session}}=await supabase.auth.getSession();if(!session)return toast('Please sign in again');const r=await fetch(API+'/delete-account',{method:'POST',headers:{Authorization:'Bearer '+session.access_token}});const j=await r.json();if(!r.ok)return toast(j.error||'Deletion failed');await supabase.auth.signOut();closeSheet();await boot();toast('Account deleted')}
@@ -94,14 +94,14 @@ function closePlayer(){
   v.pause();v.removeAttribute('src');v.load();document.getElementById('player').classList.remove('on');currentEpisodeId='';lastProgressSent=-1;mediaMessage('');
 }
 
-async function loadHistory(){
+async function loadHistory(){if(!supabase){const e=document.getElementById('historyItems');if(e)e.innerHTML='<div class="empty">Sign in requires an internet connection.</div>';return}
   if(!user){document.getElementById('continueRow').innerHTML='<div class="empty">Sign in to sync your watch progress.</div>';return}
   const {data,error}=await supabase.from('watch_history').select('episode_id,position_seconds,completed,last_watched_at,episodes(title,thumbnail_url,duration_seconds)').order('last_watched_at',{ascending:false}).limit(12);
   if(error){document.getElementById('continueRow').innerHTML='<div class="empty">Watch history is temporarily unavailable.</div>';return}
   history=data||[];
   document.getElementById('continueRow').innerHTML=history.map(function(h){return '<article class="card" onclick="resumeEpisode(\''+h.episode_id+'\')"><img src="'+safe(h.episodes?.thumbnail_url||demo[0].poster_url)+'" alt="'+safe(h.episodes?.title||'Episode')+'"><div class="info">'+safe(h.episodes?.title||'Episode')+'<small>'+(h.completed?'Completed':'Resume')+' • '+Math.floor((h.position_seconds||0)/60)+' min</small></div></article>'}).join('')||'<div class="empty">Nothing watched yet.</div>';
 }
-function renderHistory(){const e=document.getElementById('historyItems');e.innerHTML=history.length?history.map(h=>`<div class="notice"><b>${safe(h.episodes?.title||'Episode')}</b><div class="small">${h.completed?'Completed':'Progress saved'} • ${Math.floor((h.position_seconds||0)/60)} min</div></div>`).join(''):'<div class="empty">No watch history yet.</div>'}function renderList(){const a=JSON.parse(localStorage.getItem('asiaDramaList')||'[]');document.getElementById('listItems').innerHTML=a.length?a.map(x=>`<div class="notice"><b>${safe(x.title)}</b></div>`).join(''):'<div class="empty">Your list is empty.</div>'}function searchCatalog(q){q=q.toLowerCase();const r=catalog.filter(x=>(x.title||'').toLowerCase().includes(q)||(x.genre||'').toLowerCase().includes(q));document.getElementById('searchResults').innerHTML=r.map(x=>`<button class="setting" onclick="openSeries('${x.id}')"><span>${safe(x.title)}<small>${safe(x.genre||'Drama')}</small></span><b>›</b></button>`).join('')||'<div class="empty">No matching titles.</div>'}async function shareApp(){const data={title:'Asia Drama',text:'Stories worth staying for.',url:location.href};if(navigator.share){try{await navigator.share(data)}catch(e){}}else{try{await navigator.clipboard.writeText(location.href);toast('Link copied')}catch(e){toast('Share link: '+location.href)}}}function createPost(){const t=document.getElementById('postText').value.trim();if(!t)return toast('Write something first');closeSheet();toast('Post submitted for community moderation')}async function boot(){const {data}=await supabase.auth.getUser();user=data.user||null;document.getElementById('profileName').textContent=user?(user.user_metadata?.display_name||'Asia Drama member'):'Guest';document.getElementById('profileEmail').textContent=user?user.email:'Sign in to sync your library and purchases';document.getElementById('authBtn').textContent=user?'Account signed in':'Sign in / Create account';document.getElementById('adminButton').classList.toggle('hidden',!user);await loadCatalog();await loadHistory()}async function loadAdmin(){if(!user)return openSheet('auth');const {data}=await supabase.from('admin_roles').select('role').eq('user_id',user.id).limit(1).maybeSingle();if(!data)return toast('Admin access required');document.getElementById('adminSeries').innerHTML=catalog.map(x=>`<div class="panel"><b>${safe(x.title)}</b><div class="small">${safe(x.status)} • ${safe(x.language||'')}</div></div>`).join('')||'<div class="empty">No catalogue items.</div>'}document.addEventListener('visibilitychange',()=>{const v=document.getElementById('video');if(document.hidden&&user&&currentEpisodeId&&v.currentTime)saveProgress(currentEpisodeId,Math.floor(v.currentTime),false)});supabase.auth.onAuthStateChange(()=>setTimeout(boot,0));boot();
+function renderHistory(){const e=document.getElementById('historyItems');e.innerHTML=history.length?history.map(h=>`<div class="notice"><b>${safe(h.episodes?.title||'Episode')}</b><div class="small">${h.completed?'Completed':'Progress saved'} • ${Math.floor((h.position_seconds||0)/60)} min</div></div>`).join(''):'<div class="empty">No watch history yet.</div>'}function renderList(){const a=JSON.parse(localStorage.getItem('asiaDramaList')||'[]');document.getElementById('listItems').innerHTML=a.length?a.map(x=>`<div class="notice"><b>${safe(x.title)}</b></div>`).join(''):'<div class="empty">Your list is empty.</div>'}function searchCatalog(q){q=q.toLowerCase();const r=catalog.filter(x=>(x.title||'').toLowerCase().includes(q)||(x.genre||'').toLowerCase().includes(q));document.getElementById('searchResults').innerHTML=r.map(x=>`<button class="setting" onclick="openSeries('${x.id}')"><span>${safe(x.title)}<small>${safe(x.genre||'Drama')}</small></span><b>›</b></button>`).join('')||'<div class="empty">No matching titles.</div>'}async function shareApp(){const data={title:'Asia Drama',text:'Stories worth staying for.',url:location.href};if(navigator.share){try{await navigator.share(data)}catch(e){}}else{try{await navigator.clipboard.writeText(location.href);toast('Link copied')}catch(e){toast('Share link: '+location.href)}}}function createPost(){const t=document.getElementById('postText').value.trim();if(!t)return toast('Write something first');closeSheet();toast('Post submitted for community moderation')}async function boot(){if(!supabase){user=null;document.getElementById('profileName').textContent='Guest';document.getElementById('profileEmail').textContent='Connection unavailable — sign-in needs internet access';document.getElementById('authBtn').textContent='Sign in / Create account';document.getElementById('adminButton').classList.add('hidden');await loadCatalog();return}const {data}=await supabase.auth.getUser();user=data.user||null;document.getElementById('profileName').textContent=user?(user.user_metadata?.display_name||'Asia Drama member'):'Guest';document.getElementById('profileEmail').textContent=user?user.email:'Sign in to sync your library and purchases';document.getElementById('authBtn').textContent=user?'Account signed in':'Sign in / Create account';document.getElementById('adminButton').classList.toggle('hidden',!user);await loadCatalog();await loadHistory()}async function loadAdmin(){if(!user)return openSheet('auth');const {data}=await supabase.from('admin_roles').select('role').eq('user_id',user.id).limit(1).maybeSingle();if(!data)return toast('Admin access required');document.getElementById('adminSeries').innerHTML=catalog.map(x=>`<div class="panel"><b>${safe(x.title)}</b><div class="small">${safe(x.status)} • ${safe(x.language||'')}</div></div>`).join('')||'<div class="empty">No catalogue items.</div>'}document.addEventListener('visibilitychange',()=>{const v=document.getElementById('video');if(document.hidden&&user&&currentEpisodeId&&v.currentTime)saveProgress(currentEpisodeId,Math.floor(v.currentTime),false)});if(supabase&&supabase.auth){supabase.auth.onAuthStateChange(()=>setTimeout(boot,0))}boot();
 </script><style id="asia-ux-runtime-v2">
 :root{--safe-bottom:env(safe-area-inset-bottom,0px)}
 body{padding-bottom:calc(82px + var(--safe-bottom));overflow-x:hidden}
@@ -184,103 +184,20 @@ setTimeout(()=>{isAdmin().then(ok=>{el('adminButton')?.classList.toggle('hidden'
 })();
 </script><script id="asia-interaction-fix-v1-js">
 (function(){
-  /*
-   * WebView interaction hardening. The app is a local HTML application inside
-   * Android WebView, so keep a delegated touch path in addition to inline click
-   * handlers. This makes dynamically-created sheet controls reliable too.
-   */
-  window.__asiaJsReady=true;
-  window.addEventListener('error',function(e){
-    try{window.__asiaLastError=(e&&e.message)||'JavaScript error'}catch(_){ }
-  });
-
-  var touch={x:0,y:0,time:0,target:null};
-  document.addEventListener('touchstart',function(e){
-    var t=e.touches&&e.touches[0];
-    touch.x=t?t.clientX:0;touch.y=t?t.clientY:0;touch.time=Date.now();
-    touch.target=e.target&&e.target.closest?e.target.closest('button,[role="button"],a'):null;
-  },{passive:true,capture:true});
-  document.addEventListener('touchend',function(e){
-    var t=e.changedTouches&&e.changedTouches[0],b=touch.target;
-    if(!b||!b.isConnected)return;
-    var dx=t?t.clientX-touch.x:0,dy=t?t.clientY-touch.y:0;
-    if(Math.abs(dx)>12||Math.abs(dy)>12)return;
-    var code=b.getAttribute('onclick');
-    if(!code)return;
-    e.preventDefault();
-    try{b.__asiaTouchHandled=Date.now();(new Function(code)).call(b)}catch(err){try{window.toast&&window.toast(err.message||'Action could not be completed')}catch(_){}}
-  },{passive:false,capture:true});
-  document.addEventListener('click',function(e){
-    var b=e.target&&e.target.closest?e.target.closest('button,[role="button"],a'):null;
-    if(!b)return;
-    var stamp=b.__asiaTouchHandled||0;
-    if(Date.now()-stamp<700){e.preventDefault();e.stopImmediatePropagation();b.__asiaTouchHandled=0;}
-  },true);
-
-  function adminVisible(){
-    var btn=document.getElementById('adminButton');
-    if(!btn)return;
-    if(!window.user){btn.classList.add('hidden');return;}
-    supabase.from('admin_roles').select('role').eq('user_id',user.id).limit(1).maybeSingle().then(function(r){
-      btn.classList.toggle('hidden',!r.data);
-    }).catch(function(){btn.classList.add('hidden')});
-  }
-  window.asiaRefreshAdminVisibility=adminVisible;
-  if(window.supabase&&supabase.auth){supabase.auth.onAuthStateChange(function(){setTimeout(adminVisible,80)});setTimeout(adminVisible,300)}
-
-  /* Email + phone authentication in one account sheet. */
-  var originalOpenSheet=window.openSheet;
-  function authHtml(mode){
-    var email=mode==='email', phone=mode==='phone', verify=mode==='verify';
-    var h='<button class="close" onclick="closeSheet()">×</button><h2>Welcome to Asia Drama</h2>';
-    h+='<div class="authModes"><button type="button" class="authMode '+(email?'on':'')+'" onclick="asiaAuthMode(\'email\')">Email</button><button type="button" class="authMode '+(phone?'on':'')+'" onclick="asiaAuthMode(\'phone\')">Phone</button></div>';
-    if(email){
-      h+='<p class="small authHint">Sign in or create your Asia Drama account.</p><input id="email" class="field" type="email" placeholder="Email address" autocomplete="email"><input id="password" class="field" type="password" placeholder="Password" autocomplete="current-password"><button class="primary" type="button" onclick="asiaEmailSignIn()">Sign in</button><button class="secondary" type="button" style="margin-left:6px" onclick="asiaEmailSignUp()">Create account</button>';
-    }else if(phone){
-      h+='<p class="small authHint">Enter your phone number with country code, for example +91XXXXXXXXXX.</p><input id="phone" class="field" type="tel" placeholder="+91XXXXXXXXXX" autocomplete="tel"><button class="primary" type="button" onclick="asiaSendOtp()">Send OTP</button>';
-    }else if(verify){
-      h+='<p class="small authHint">Enter the OTP sent to your phone.</p><input id="otp" class="field" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit OTP"><button class="primary" type="button" onclick="asiaVerifyOtp()">Verify & continue</button>';
-    }
-    h+='<p class="small" style="margin-top:12px">By continuing, you agree to the Asia Drama Terms and Privacy Policy.</p>';
-    return h;
-  }
-  window.asiaAuthMode=function(mode){
-    var s=document.getElementById('sheet');if(!s)return;
-    s.innerHTML=authHtml(mode);document.getElementById('overlay').classList.add('on');
-  };
-  window.asiaEmailSignIn=async function(){
-    var email=(document.getElementById('email')||{}).value?.trim(),password=(document.getElementById('password')||{}).value||'';
-    if(!email||!password)return toast('Enter your email and password');
-    var r=await supabase.auth.signInWithPassword({email,password});
-    if(r.error)return toast(r.error.message||'Sign in failed');
-    closeSheet();toast('Welcome back');await boot();adminVisible();
-  };
-  window.asiaEmailSignUp=async function(){
-    var email=(document.getElementById('email')||{}).value?.trim(),password=(document.getElementById('password')||{}).value||'';
-    if(!email||!password)return toast('Enter your email and password');
-    if(password.length<8)return toast('Use at least 8 characters');
-    var r=await supabase.auth.signUp({email,password});
-    if(r.error)return toast(r.error.message||'Account creation failed');
-    closeSheet();toast(r.data?.session?'Account created':'Check your email to verify your account');await boot();adminVisible();
-  };
-  window.asiaSendOtp=async function(){
-    var phone=(document.getElementById('phone')||{}).value?.trim();
-    if(!phone)return toast('Enter your phone number');
-    var r=await supabase.auth.signInWithOtp({phone});
-    if(r.error)return toast(r.error.message||'OTP could not be sent');
-    window.__asiaOtpPhone=phone;asiaAuthMode('verify');toast('OTP sent');
-  };
-  window.asiaVerifyOtp=async function(){
-    var token=(document.getElementById('otp')||{}).value?.trim(),phone=window.__asiaOtpPhone;
-    if(!phone||!token)return toast('Enter the OTP');
-    var r=await supabase.auth.verifyOtp({phone,token,type:'sms'});
-    if(r.error)return toast(r.error.message||'Invalid OTP');
-    closeSheet();toast('Welcome to Asia Drama');await boot();adminVisible();
-  };
-  window.openSheet=function(type){
-    if(type==='auth')return asiaAuthMode('email');
-    return originalOpenSheet.apply(this,arguments);
-  };
-  setTimeout(adminVisible,500);
+window.__asiaJsReady=true;
+window.addEventListener('error',function(e){try{window.__asiaLastError=(e&&e.message)||'JavaScript error'}catch(_){} });
+function adminVisible(){var b=document.getElementById('adminButton');if(!b)return;if(!window.user||!window.supabase||!supabase){b.classList.add('hidden');return}supabase.from('admin_roles').select('role').eq('user_id',user.id).limit(1).maybeSingle().then(function(r){b.classList.toggle('hidden',!r.data)}).catch(function(){b.classList.add('hidden')})}
+window.asiaRefreshAdminVisibility=adminVisible;
+var originalOpenSheet=window.openSheet;
+function authHtml(mode){var email=mode==='email';var h='<button class="close" onclick="closeSheet()">×</button><h2>Welcome to Asia Drama</h2>';h+='<div class="authModes"><button type="button" class="authMode '+(email?'on':'')+'" onclick="asiaAuthMode(\'email\')">Email</button><button type="button" class="authMode '+(!email?'on':'')+'" onclick="asiaAuthMode(\'phone\')">Phone</button></div>';if(email){h+='<p class="small authHint">Sign in or create your Asia Drama account.</p><input id="email" class="field" type="email" placeholder="Email address" autocomplete="email"><input id="password" class="field" type="password" placeholder="Password" autocomplete="current-password"><button class="primary" type="button" onclick="asiaEmailSignIn()">Sign in</button><button class="secondary" type="button" style="margin-left:6px" onclick="asiaEmailSignUp()">Create account</button>'}else{h+='<p class="small authHint">Enter your phone number with country code, for example +91XXXXXXXXXX.</p><input id="phone" class="field" type="tel" placeholder="+91XXXXXXXXXX" autocomplete="tel"><button class="primary" type="button" onclick="asiaSendOtp()">Send OTP</button>'}h+='<p class="small" style="margin-top:12px">By continuing, you agree to the Asia Drama Terms and Privacy Policy.</p>';return h}
+window.asiaAuthMode=function(mode){var s=document.getElementById('sheet');if(!s)return;s.innerHTML=authHtml(mode);document.getElementById('overlay').classList.add('on')};
+function offline(){toast('Connection unavailable. Check your internet and try again.')}
+window.asiaEmailSignIn=async function(){if(!supabase)return offline();var e=(document.getElementById('email')||{}).value?.trim(),p=(document.getElementById('password')||{}).value||'';if(!e||!p)return toast('Enter your email and password');var r=await supabase.auth.signInWithPassword({email:e,password:p});if(r.error)return toast(r.error.message||'Sign in failed');closeSheet();toast('Welcome back');await boot();adminVisible()};
+window.asiaEmailSignUp=async function(){if(!supabase)return offline();var e=(document.getElementById('email')||{}).value?.trim(),p=(document.getElementById('password')||{}).value||'';if(!e||!p)return toast('Enter your email and password');if(p.length<8)return toast('Use at least 8 characters');var r=await supabase.auth.signUp({email:e,password:p});if(r.error)return toast(r.error.message||'Account creation failed');closeSheet();toast(r.data?.session?'Account created':'Check your email to verify your account');await boot();adminVisible()};
+window.asiaSendOtp=async function(){if(!supabase)return offline();var ph=(document.getElementById('phone')||{}).value?.trim();if(!ph)return toast('Enter your phone number');var r=await supabase.auth.signInWithOtp({phone:ph});if(r.error)return toast(r.error.message||'OTP could not be sent');window.__asiaOtpPhone=ph;var s=document.getElementById('sheet');s.innerHTML='<button class="close" onclick="closeSheet()">×</button><h2>Verify phone</h2><p class="small authHint">Enter the OTP sent to '+safe(ph)+'</p><input id="otp" class="field" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit OTP"><button class="primary" type="button" onclick="asiaVerifyOtp()">Verify & continue</button>';toast('OTP sent')};
+window.asiaVerifyOtp=async function(){if(!supabase)return offline();var t=(document.getElementById('otp')||{}).value?.trim(),ph=window.__asiaOtpPhone;if(!ph||!t)return toast('Enter the OTP');var r=await supabase.auth.verifyOtp({phone:ph,token:t,type:'sms'});if(r.error)return toast(r.error.message||'Invalid OTP');closeSheet();toast('Welcome to Asia Drama');await boot();adminVisible()};
+window.openSheet=function(type){if(type==='auth')return asiaAuthMode('email');return originalOpenSheet.apply(this,arguments)};
+if(window.supabase&&supabase&&supabase.auth)supabase.auth.onAuthStateChange(function(){setTimeout(adminVisible,100)});
+setTimeout(adminVisible,500);
 })();
 </script></body></html>
