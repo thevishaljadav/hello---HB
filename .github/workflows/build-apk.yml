@@ -3,6 +3,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ app-online ]
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,6 +28,28 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
+      - name: Fix Java callback syntax
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/java/com/hellobaroda/navratri/MainActivity.java')
+          s=p.read_text()
+          s=s.replace('rowTitle("Popular Garba Grounds","See all",()->grounds())','rowTitle("Popular Garba Grounds","See all",v->grounds())')
+          s=s.replace('rowTitle("Community moments","View trending",()->trending())','rowTitle("Community moments","View trending",v->trending())')
+          p.write_text(s)
+          PY
+          git diff --check
+      - name: Persist source fix
+        shell: bash
+        run: |
+          if ! git diff --quiet -- app/src/main/java/com/hellobaroda/navratri/MainActivity.java; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add app/src/main/java/com/hellobaroda/navratri/MainActivity.java
+            git commit -m "Fix Android callback lambda syntax [skip ci]"
+            git push origin HEAD:app-online
+          fi
       - name: Build debug APK
         run: gradle :app:assembleDebug
       - uses: actions/upload-artifact@v4
