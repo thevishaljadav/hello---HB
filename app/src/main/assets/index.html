@@ -16,7 +16,9 @@ body{overscroll-behavior-x:none}
 img,video,audio{max-width:100%}
 .nav{max-width:680px;overflow:hidden}
 @media(max-width:680px){.top,.tabs,.nav{max-width:100vw}.brand{min-width:0}.brand div{white-space:nowrap}.actions{min-width:0}.icon{flex:0 0 48px}}
-</style><style id="asia-cms-overlay-css">#asiaAdminCMS{display:none;position:relative;z-index:20;padding-bottom:110px}#asiaAdminCMS.on{display:block}.cmsWrap{padding:0 15px}.cmsTabs{display:flex;gap:7px;overflow:auto;margin-bottom:10px}.cmsTabs button{flex:0 0 auto}.cmsPane{display:none}.cmsPane.on{display:block}.cmsCard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px}.cmsCard h3{margin:0 0 10px;font-size:18px}.cmsGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cmsList{display:grid;gap:8px}.cmsItem{padding:12px;border:1px solid var(--line);border-radius:14px;background:#111217}.cmsMeta{font-size:12px;color:var(--muted);margin-top:4px}.cmsProgress{height:7px;background:#282a31;border-radius:99px;overflow:hidden;margin:8px 0}.cmsProgress i{display:block;height:100%;width:0;background:var(--red)}@media(max-width:520px){.cmsGrid{grid-template-columns:1fr}}#admin.hidden{display:none!important}</style></head><body><div class="app" id="app"><header class="top"><div class="brand"><img src="icon-mark.svg" alt="Asia Drama logo"><div><b>Asia</b> <span>Drama</span></div></div><div class="actions"><button class="icon" aria-label="Search" onclick="openSheet('search')">⌕</button><button class="icon" aria-label="Notifications" onclick="openSheet('notice')">♧</button><button class="icon" aria-label="Profile" onclick="go('profile',4)">●</button></div></header><div class="tabs"><button class="tab on" onclick="go('home',0,this)">For You</button><button class="tab" onclick="go('series',1,this)">Series</button><button class="tab" onclick="go('movies',1,this)">Movies</button><button class="tab" onclick="go('shorts',2,this)">Shorts</button><button class="tab" onclick="go('music',0,this)">Music</button></div>
+</style><style id="asia-cms-overlay-css">#asiaAdminCMS{display:none;position:relative;z-index:20;padding-bottom:110px}#asiaAdminCMS.on{display:block}.cmsWrap{padding:0 15px}.cmsTabs{display:flex;gap:7px;overflow:auto;margin-bottom:10px}.cmsTabs button{flex:0 0 auto}.cmsPane{display:none}.cmsPane.on{display:block}.cmsCard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px}.cmsCard h3{margin:0 0 10px;font-size:18px}.cmsGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cmsList{display:grid;gap:8px}.cmsItem{padding:12px;border:1px solid var(--line);border-radius:14px;background:#111217}.cmsMeta{font-size:12px;color:var(--muted);margin-top:4px}.cmsProgress{height:7px;background:#282a31;border-radius:99px;overflow:hidden;margin:8px 0}.cmsProgress i{display:block;height:100%;width:0;background:var(--red)}@media(max-width:520px){.cmsGrid{grid-template-columns:1fr}}#admin.hidden{display:none!important}</style><style id="asia-interaction-fix-v1">
+.authModes{display:flex;gap:8px;margin:8px 0 12px}.authMode{flex:1;background:#1b1c22;border:1px solid #30323a;color:#aaa;border-radius:13px}.authMode.on{background:var(--red);color:#fff}.authHint{margin:6px 0 12px}
+</style></head><body><div class="app" id="app"><header class="top"><div class="brand"><img src="icon-mark.svg" alt="Asia Drama logo"><div><b>Asia</b> <span>Drama</span></div></div><div class="actions"><button class="icon" aria-label="Search" onclick="openSheet('search')">⌕</button><button class="icon" aria-label="Notifications" onclick="openSheet('notice')">♧</button><button class="icon" aria-label="Profile" onclick="go('profile',4)">●</button></div></header><div class="tabs"><button class="tab on" onclick="go('home',0,this)">For You</button><button class="tab" onclick="go('series',1,this)">Series</button><button class="tab" onclick="go('movies',1,this)">Movies</button><button class="tab" onclick="go('shorts',2,this)">Shorts</button><button class="tab" onclick="go('music',0,this)">Music</button></div>
 <main id="home" class="view on"><section class="hero"><div class="heroText"><span class="pill">ASIA DRAMA ORIGINAL</span><h1>Stories worth staying for.</h1><div class="muted">Series • Movies • Shorts • Music</div><p class="desc">A premium entertainment platform built for Asian stories and global audiences.</p><button class="primary" onclick="go('series',1)">Explore Series</button></div></section><div class="head"><h2>Continue Watching</h2><button class="link" onclick="loadHistory()">Refresh ›</button></div><div class="row" id="continueRow"><div class="empty">Sign in to sync your watch progress.</div></div><div class="head"><h2>Latest Series</h2><button class="link" onclick="go('series',1)">See All ›</button></div><div class="row" id="homeSeries"></div><div class="head"><h2>Shorts</h2><button class="link" onclick="go('shorts',2)">View ›</button></div><div class="row"><article class="card wide" onclick="go('shorts',2)"><img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=700&q=80" alt="Short-form entertainment"><div class="info">Fast stories, vertical and social</div></article></div></main>
 <main id="series" class="view"><div class="head"><h2>Series</h2><button class="link" onclick="openSheet('search')">Search</button></div><div id="seriesGrid" class="grid"></div></main><main id="movies" class="view"><div class="head"><h2>Movies</h2><button class="link" onclick="openSheet('search')">Search</button></div><div id="moviesGrid" class="grid"></div></main>
 <main id="shorts" class="view"><div class="head"><h2>Shorts</h2><button class="link" onclick="toast('Feed refreshed')">Refresh</button></div><div class="reels"><article class="reel r1"><div class="reelText"><span class="pill">TRENDING</span><h2>Discover new stories</h2><p>Short-form entertainment for global audiences.</p></div><div class="reelButtons"><button class="round" onclick="toast('Liked')">♥</button><button class="round" onclick="toast('Comments coming soon')">●</button><button class="round" onclick="shareApp()">⌁</button><button class="round" onclick="toast('Saved')">▢</button></div></article><article class="reel r2"><div class="reelText"><span class="pill">NEW</span><h2>Behind the story</h2><p>Explore scenes, music and culture.</p></div></article><article class="reel r3"><div class="reelText"><span class="pill">ASIA DRAMA</span><h2>Your next favourite</h2><p>New creator-safe content is published through the business dashboard.</p></div></article></div></main>
@@ -179,5 +181,106 @@ window.cmsRefresh=async function(){if(!(await isAdmin())){toast('This account is
 const oldGo=window.go;window.go=function(id,nav,tab){if(id!=='admin'){el('asiaAdminCMS').classList.remove('on');el('admin')?.classList.remove('hidden');oldGo(id,nav);return}oldGo('admin',nav);el('admin')?.classList.add('hidden');el('asiaAdminCMS').classList.add('on');cmsRefresh()};
 const oldPlay=window.playEpisode;window.playEpisode=async function(id,title,url,paid){if(paid){return oldPlay(id,title,url,paid)}const s=await sess();if(!s)return openSheet('auth');try{mediaMessage('Checking playback access…');const r=await fetch(PLAY+'?episode_id='+encodeURIComponent(id),{headers:{Authorization:'Bearer '+s.access_token}});const j=await r.json();if(!r.ok)throw Error(j.error||'Playback unavailable');currentEpisodeId=id;closeSheet();el('playerTitle').textContent=title||j.title||'Asia Drama';const v=el('video');v.pause();v.src=j.url;v.controls=true;v.load();el('player').classList.add('on');v.play().catch(()=>{});mediaMessage('')}catch(e){mediaMessage('');toast(e.message||'Playback unavailable')}};
 setTimeout(()=>{isAdmin().then(ok=>{el('adminButton')?.classList.toggle('hidden',!ok)})},500);
+})();
+</script><script id="asia-interaction-fix-v1-js">
+(function(){
+  /*
+   * WebView interaction hardening. The app is a local HTML application inside
+   * Android WebView, so keep a delegated touch path in addition to inline click
+   * handlers. This makes dynamically-created sheet controls reliable too.
+   */
+  window.__asiaJsReady=true;
+  window.addEventListener('error',function(e){
+    try{window.__asiaLastError=(e&&e.message)||'JavaScript error'}catch(_){ }
+  });
+
+  var touch={x:0,y:0,time:0,target:null};
+  document.addEventListener('touchstart',function(e){
+    var t=e.touches&&e.touches[0];
+    touch.x=t?t.clientX:0;touch.y=t?t.clientY:0;touch.time=Date.now();
+    touch.target=e.target&&e.target.closest?e.target.closest('button,[role="button"],a'):null;
+  },{passive:true,capture:true});
+  document.addEventListener('touchend',function(e){
+    var t=e.changedTouches&&e.changedTouches[0],b=touch.target;
+    if(!b||!b.isConnected)return;
+    var dx=t?t.clientX-touch.x:0,dy=t?t.clientY-touch.y:0;
+    if(Math.abs(dx)>12||Math.abs(dy)>12)return;
+    var code=b.getAttribute('onclick');
+    if(!code)return;
+    e.preventDefault();
+    try{b.__asiaTouchHandled=Date.now();(new Function(code)).call(b)}catch(err){try{window.toast&&window.toast(err.message||'Action could not be completed')}catch(_){}}
+  },{passive:false,capture:true});
+  document.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest?e.target.closest('button,[role="button"],a'):null;
+    if(!b)return;
+    var stamp=b.__asiaTouchHandled||0;
+    if(Date.now()-stamp<700){e.preventDefault();e.stopImmediatePropagation();b.__asiaTouchHandled=0;}
+  },true);
+
+  function adminVisible(){
+    var btn=document.getElementById('adminButton');
+    if(!btn)return;
+    if(!window.user){btn.classList.add('hidden');return;}
+    supabase.from('admin_roles').select('role').eq('user_id',user.id).limit(1).maybeSingle().then(function(r){
+      btn.classList.toggle('hidden',!r.data);
+    }).catch(function(){btn.classList.add('hidden')});
+  }
+  window.asiaRefreshAdminVisibility=adminVisible;
+  if(window.supabase&&supabase.auth){supabase.auth.onAuthStateChange(function(){setTimeout(adminVisible,80)});setTimeout(adminVisible,300)}
+
+  /* Email + phone authentication in one account sheet. */
+  var originalOpenSheet=window.openSheet;
+  function authHtml(mode){
+    var email=mode==='email', phone=mode==='phone', verify=mode==='verify';
+    var h='<button class="close" onclick="closeSheet()">×</button><h2>Welcome to Asia Drama</h2>';
+    h+='<div class="authModes"><button type="button" class="authMode '+(email?'on':'')+'" onclick="asiaAuthMode(\'email\')">Email</button><button type="button" class="authMode '+(phone?'on':'')+'" onclick="asiaAuthMode(\'phone\')">Phone</button></div>';
+    if(email){
+      h+='<p class="small authHint">Sign in or create your Asia Drama account.</p><input id="email" class="field" type="email" placeholder="Email address" autocomplete="email"><input id="password" class="field" type="password" placeholder="Password" autocomplete="current-password"><button class="primary" type="button" onclick="asiaEmailSignIn()">Sign in</button><button class="secondary" type="button" style="margin-left:6px" onclick="asiaEmailSignUp()">Create account</button>';
+    }else if(phone){
+      h+='<p class="small authHint">Enter your phone number with country code, for example +91XXXXXXXXXX.</p><input id="phone" class="field" type="tel" placeholder="+91XXXXXXXXXX" autocomplete="tel"><button class="primary" type="button" onclick="asiaSendOtp()">Send OTP</button>';
+    }else if(verify){
+      h+='<p class="small authHint">Enter the OTP sent to your phone.</p><input id="otp" class="field" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit OTP"><button class="primary" type="button" onclick="asiaVerifyOtp()">Verify & continue</button>';
+    }
+    h+='<p class="small" style="margin-top:12px">By continuing, you agree to the Asia Drama Terms and Privacy Policy.</p>';
+    return h;
+  }
+  window.asiaAuthMode=function(mode){
+    var s=document.getElementById('sheet');if(!s)return;
+    s.innerHTML=authHtml(mode);document.getElementById('overlay').classList.add('on');
+  };
+  window.asiaEmailSignIn=async function(){
+    var email=(document.getElementById('email')||{}).value?.trim(),password=(document.getElementById('password')||{}).value||'';
+    if(!email||!password)return toast('Enter your email and password');
+    var r=await supabase.auth.signInWithPassword({email,password});
+    if(r.error)return toast(r.error.message||'Sign in failed');
+    closeSheet();toast('Welcome back');await boot();adminVisible();
+  };
+  window.asiaEmailSignUp=async function(){
+    var email=(document.getElementById('email')||{}).value?.trim(),password=(document.getElementById('password')||{}).value||'';
+    if(!email||!password)return toast('Enter your email and password');
+    if(password.length<8)return toast('Use at least 8 characters');
+    var r=await supabase.auth.signUp({email,password});
+    if(r.error)return toast(r.error.message||'Account creation failed');
+    closeSheet();toast(r.data?.session?'Account created':'Check your email to verify your account');await boot();adminVisible();
+  };
+  window.asiaSendOtp=async function(){
+    var phone=(document.getElementById('phone')||{}).value?.trim();
+    if(!phone)return toast('Enter your phone number');
+    var r=await supabase.auth.signInWithOtp({phone});
+    if(r.error)return toast(r.error.message||'OTP could not be sent');
+    window.__asiaOtpPhone=phone;asiaAuthMode('verify');toast('OTP sent');
+  };
+  window.asiaVerifyOtp=async function(){
+    var token=(document.getElementById('otp')||{}).value?.trim(),phone=window.__asiaOtpPhone;
+    if(!phone||!token)return toast('Enter the OTP');
+    var r=await supabase.auth.verifyOtp({phone,token,type:'sms'});
+    if(r.error)return toast(r.error.message||'Invalid OTP');
+    closeSheet();toast('Welcome to Asia Drama');await boot();adminVisible();
+  };
+  window.openSheet=function(type){
+    if(type==='auth')return asiaAuthMode('email');
+    return originalOpenSheet.apply(this,arguments);
+  };
+  setTimeout(adminVisible,500);
 })();
 </script></body></html>
