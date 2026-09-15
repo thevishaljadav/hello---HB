@@ -1,0 +1,59 @@
+-- Asia Drama business foundation
+-- Apply this migration to the connected Supabase project.
+-- Core entities: content catalog, payments, subscriptions, entitlements, watch history,
+-- admin roles and audit logs. Complimentary access is represented as source=admin_grant.
+
+create extension if not exists pgcrypto;
+
+create table if not exists public.series (id uuid primary key default gen_random_uuid(), title text not null, description text, poster_url text, banner_url text, genre text, language text, age_rating text, status text not null default 'draft' check (status in ('draft','published','archived')), created_by uuid references auth.users(id), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table if not exists public.seasons (id uuid primary key default gen_random_uuid(), series_id uuid not null references public.series(id) on delete cascade, season_number integer not null check (season_number > 0), title text, created_at timestamptz not null default now(), unique(series_id, season_number));
+create table if not exists public.episodes (id uuid primary key default gen_random_uuid(), season_id uuid not null references public.seasons(id) on delete cascade, episode_number integer not null check (episode_number > 0), title text not null, description text, thumbnail_url text, video_url text, duration_seconds integer check (duration_seconds is null or duration_seconds >= 0), access_type text not null default 'free' check (access_type in ('free','pay_per_episode','subscription_only','coming_soon','age_restricted','region_restricted')), price_paise bigint check (price_paise is null or price_paise >= 0), currency text not null default 'INR', status text not null default 'draft' check (status in ('draft','published','archived')), release_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now(), unique(season_id, episode_number));
+create table if not exists public.admin_roles (user_id uuid primary key references auth.users(id) on delete cascade, role text not null check (role in ('owner','admin','content_manager','finance','moderator','support')), created_at timestamptz not null default now());
+create table if not exists public.orders (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id), amount_paise bigint not null check (amount_paise >= 0), currency text not null default 'INR', provider text not null default 'razorpay', provider_order_id text unique, status text not null default 'created' check (status in ('created','pending','paid','failed','cancelled','refunded','partially_refunded')), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table if not exists public.order_items (id uuid primary key default gen_random_uuid(), order_id uuid not null references public.orders(id) on delete cascade, episode_id uuid references public.episodes(id), description text not null, amount_paise bigint not null check (amount_paise >= 0), created_at timestamptz not null default now());
+create table if not exists public.payment_transactions (id uuid primary key default gen_random_uuid(), order_id uuid references public.orders(id), user_id uuid references auth.users(id), provider text not null default 'razorpay', provider_payment_id text unique, provider_signature text, status text not null check (status in ('authorized','captured','failed','refunded','partially_refunded')), amount_paise bigint not null check (amount_paise >= 0), currency text not null default 'INR', raw_event jsonb, created_at timestamptz not null default now());
+create table if not exists public.payment_webhook_events (id uuid primary key default gen_random_uuid(), provider text not null, event_id text not null, event_type text not null, payload jsonb not null, processed_at timestamptz, created_at timestamptz not null default now(), unique(provider, event_id));
+create table if not exists public.entitlements (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, series_id uuid references public.series(id) on delete cascade, season_id uuid references public.seasons(id) on delete cascade, episode_id uuid references public.episodes(id) on delete cascade, source text not null check (source in ('purchase','subscription','admin_grant','promotion','free')), order_id uuid references public.orders(id), granted_by uuid references auth.users(id), reason text, starts_at timestamptz not null default now(), expires_at timestamptz, revoked_at timestamptz, created_at timestamptz not null default now(), check (num_nonnulls(series_id, season_id, episode_id) = 1));
+create table if not exists public.watch_history (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, episode_id uuid not null references public.episodes(id) on delete cascade, position_seconds integer not null default 0 check (position_seconds >= 0), completed boolean not null default false, last_watched_at timestamptz not null default now(), unique(user_id, episode_id));
+create table if not exists public.user_subscriptions (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, provider text not null default 'razorpay', provider_subscription_id text unique, plan_name text not null, status text not null check (status in ('created','active','paused','cancelled','expired','halted')), current_period_start timestamptz, current_period_end timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table if not exists public.audit_logs (id uuid primary key default gen_random_uuid(), actor_id uuid references auth.users(id), action text not null, target_user_id uuid references auth.users(id), target_type text, target_id uuid, details jsonb, created_at timestamptz not null default now());
+
+create or replace function public.has_admin_access(uid uuid default auth.uid()) returns boolean language sql stable security definer set search_path = public as $$ select exists(select 1 from public.admin_roles where user_id = uid); $$;
+create or replace function public.can_watch_episode(p_user_id uuid, p_episode_id uuid) returns boolean language sql stable security definer set search_path = public as $$ select exists(select 1 from public.episodes e where e.id=p_episode_id and e.status='published' and e.access_type='free') or exists(select 1 from public.entitlements x where x.user_id=p_user_id and x.revoked_at is null and x.starts_at <= now() and (x.expires_at is null or x.expires_at > now()) and (x.episode_id=p_episode_id or x.season_id=(select e.season_id from public.episodes e where e.id=p_episode_id) or x.series_id=(select s.series_id from public.seasons s join public.episodes e on e.season_id=s.id where e.id=p_episode_id))) or public.has_admin_access(p_user_id); $$;
+create or replace function public.grant_admin_entitlement(p_target_user uuid, p_episode_id uuid default null, p_season_id uuid default null, p_series_id uuid default null, p_expires_at timestamptz default null, p_reason text default 'Complimentary access') returns uuid language plpgsql security definer set search_path = public as $$ declare new_id uuid; begin if not public.has_admin_access(auth.uid()) then raise exception 'admin access required'; end if; if num_nonnulls(p_episode_id,p_season_id,p_series_id) <> 1 then raise exception 'exactly one content scope is required'; end if; insert into public.entitlements(user_id,episode_id,season_id,series_id,source,granted_by,reason,expires_at) values(p_target_user,p_episode_id,p_season_id,p_series_id,'admin_grant',auth.uid(),p_reason,p_expires_at) returning id into new_id; insert into public.audit_logs(actor_id,action,target_user_id,target_type,target_id,details) values(auth.uid(),'grant_complimentary_access',p_target_user,'entitlement',new_id,jsonb_build_object('episode_id',p_episode_id,'season_id',p_season_id,'series_id',p_series_id,'expires_at',p_expires_at,'reason',p_reason)); return new_id; end; $$;
+
+alter table public.series enable row level security;
+alter table public.seasons enable row level security;
+alter table public.episodes enable row level security;
+alter table public.admin_roles enable row level security;
+alter table public.orders enable row level security;
+alter table public.order_items enable row level security;
+alter table public.payment_transactions enable row level security;
+alter table public.payment_webhook_events enable row level security;
+alter table public.entitlements enable row level security;
+alter table public.watch_history enable row level security;
+alter table public.user_subscriptions enable row level security;
+alter table public.audit_logs enable row level security;
+
+create policy "published series readable" on public.series for select using (status='published' or public.has_admin_access());
+create policy "published seasons readable" on public.seasons for select using (exists(select 1 from public.series s where s.id=series_id and (s.status='published' or public.has_admin_access())));
+create policy "published episodes readable" on public.episodes for select using (status='published' or public.has_admin_access());
+create policy "admins manage series" on public.series for all using (public.has_admin_access()) with check (public.has_admin_access());
+create policy "admins manage seasons" on public.seasons for all using (public.has_admin_access()) with check (public.has_admin_access());
+create policy "admins manage episodes" on public.episodes for all using (public.has_admin_access()) with check (public.has_admin_access());
+create policy "users own entitlements" on public.entitlements for select using (auth.uid()=user_id or public.has_admin_access());
+create policy "admins manage entitlements" on public.entitlements for all using (public.has_admin_access()) with check (public.has_admin_access());
+create policy "users own watch history" on public.watch_history for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+create policy "admins read watch history" on public.watch_history for select using (public.has_admin_access());
+create policy "users own orders" on public.orders for select using (auth.uid()=user_id or public.has_admin_access());
+create policy "users own order items" on public.order_items for select using (exists(select 1 from public.orders o where o.id=order_id and (o.user_id=auth.uid() or public.has_admin_access())));
+create policy "users own payments" on public.payment_transactions for select using (auth.uid()=user_id or public.has_admin_access());
+create policy "users own subscriptions" on public.user_subscriptions for select using (auth.uid()=user_id or public.has_admin_access());
+create policy "admins read roles" on public.admin_roles for select using (public.has_admin_access() or auth.uid()=user_id);
+create policy "admins manage roles" on public.admin_roles for all using (public.has_admin_access()) with check (public.has_admin_access());
+create policy "admins read webhook events" on public.payment_webhook_events for select using (public.has_admin_access());
+create policy "admins read audit logs" on public.audit_logs for select using (public.has_admin_access());
+create policy "admins write audit logs" on public.audit_logs for insert with check (public.has_admin_access());
+
+revoke all on function public.grant_admin_entitlement(uuid,uuid,uuid,uuid,timestamptz,text) from public;
+grant execute on function public.grant_admin_entitlement(uuid,uuid,uuid,uuid,timestamptz,text) to authenticated;
