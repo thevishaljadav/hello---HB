@@ -41,13 +41,14 @@ jobs:
           python3 tools/patch_mobile_polish.py
           python3 tools/patch_live_sync.py
           python3 tools/patch_secure_playback_bridge.py
+          python3 tools/patch_lint_java.py
       - name: Persist source fixes
         shell: bash
         run: |
           if ! git diff --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add app/build.gradle app/src/main/AndroidManifest.xml app/src/main/res/values/styles.xml app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/java/com/hellobaroda/navratri/MainActivity2.java app/src/main/java/com/hellobaroda/navratri/SupabaseApi.java app/src/main/assets/index.html tools/repair_html_runtime.py tools/patch_visual_hardening.py tools/patch_cms_overlay.py tools/patch_admin_entry.py tools/normalize_cms_overlay.py tools/patch_interaction_auth.py tools/patch_final_navigation.py tools/patch_mobile_polish.py tools/patch_live_sync.py tools/patch_secure_playback_bridge.py
+            git add app/build.gradle app/src/main/AndroidManifest.xml app/src/main/res/values/styles.xml app/src/main/java/com/hellobaroda/navratri/MainActivity.java app/src/main/java/com/hellobaroda/navratri/MainActivity2.java app/src/main/java/com/hellobaroda/navratri/SupabaseApi.java app/src/main/assets/index.html tools/repair_html_runtime.py tools/patch_visual_hardening.py tools/patch_cms_overlay.py tools/patch_admin_entry.py tools/normalize_cms_overlay.py tools/patch_interaction_auth.py tools/patch_final_navigation.py tools/patch_mobile_polish.py tools/patch_live_sync.py tools/patch_secure_playback_bridge.py tools/patch_lint_java.py
             git commit -m "Update Asia Drama WebView and secure playback [skip ci]"
             git push origin HEAD:app-online
           fi
