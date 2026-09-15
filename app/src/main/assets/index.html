@@ -212,7 +212,6 @@ setTimeout(()=>{isAdmin().then(ok=>{el('adminButton')?.classList.toggle('hidden'
   /* Install only where the normal app did not initialize a function. */
   if(typeof window.toast!=='function')window.toast=fallbackToast;
   if(typeof window.closeSheet!=='function')window.closeSheet=fallbackCloseSheet;
-  var coreGo=window.go;
   if(typeof window.go!=='function')window.go=function(id,index){return fallbackGo(id,index)};
   var coreOpenSheet=window.openSheet;
   window.openSheet=function(type){
@@ -241,7 +240,6 @@ setTimeout(()=>{isAdmin().then(ok=>{el('adminButton')?.classList.toggle('hidden'
   window.asiaSendOtp=async function(){var sb=window.supabase;if(!sb)return offline();var ph=(document.getElementById('phone')||{}).value?.trim();if(!ph)return fallbackToast('Enter your phone number');var r=await sb.auth.signInWithOtp({phone:ph});if(r.error)return fallbackToast(r.error.message||'OTP could not be sent');window.__asiaOtpPhone=ph;var sh=document.getElementById('sheet');sh.innerHTML='<button class="close" onclick="closeSheet()">×</button><h2>Verify phone</h2><p class="small authHint">Enter the OTP sent to '+String(ph).replace(/[<>&]/g,'')+'</p><input id="otp" class="field" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit OTP"><button class="primary" type="button" onclick="asiaVerifyOtp()">Verify & continue</button>';fallbackToast('OTP sent')};
   window.asiaVerifyOtp=async function(){var sb=window.supabase;if(!sb)return offline();var t=(document.getElementById('otp')||{}).value?.trim(),ph=window.__asiaOtpPhone;if(!ph||!t)return fallbackToast('Enter the OTP');var r=await sb.auth.verifyOtp({phone:ph,token:t,type:'sms'});if(r.error)return fallbackToast(r.error.message||'Invalid OTP');fallbackCloseSheet();fallbackToast('Welcome to Asia Drama');if(typeof window.boot==='function')await window.boot();adminVisible()};
 
-  /* If the main app failed before defining navigation, re-run the basic route setup. */
   setTimeout(function(){
     if(typeof window.go!=='function')window.go=function(id,index){fallbackGo(id,index)};
     if(typeof window.openSheet!=='function')window.openSheet=fallbackOpenSheet;
