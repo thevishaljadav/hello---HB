@@ -1,0 +1,1 @@
+Android build fix trigger. Source callback syntax is normalized by the build workflow before compilation.
