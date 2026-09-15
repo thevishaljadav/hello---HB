@@ -21,7 +21,7 @@ public class MainActivity extends Activity {
     final int MAROON=Color.rgb(128,0,40), DEEP=Color.rgb(55,0,20), GOLD=Color.rgb(255,198,38), CREAM=Color.rgb(255,249,236), PINK=Color.rgb(175,0,52), WHITE=Color.WHITE, MUTED=Color.rgb(104,82,86);
     SupabaseApi api=new SupabaseApi(); ExecutorService io=Executors.newSingleThreadExecutor(); LinearLayout root,content; int day=1; String mode="queen",saveName="",saveBio=""; Uri selected; ImageView selectedPreview;
     int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
-    TextView text(String s,float size,int color,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setPadding(dp(4),dp(5),dp(4),dp(5));if(bold)t.setTypeface(null,1);return t;}
+    TextView text(String s,float size,int color,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setPadding(dp(4),dp(5),dp(4),dp(5));if(bold)t.setTypeface(null,android.graphics.Typeface.BOLD);return t;}
     GradientDrawable bg(int color,float radius){GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(dp(radius));return g;}
     Button button(String s){Button b=new Button(this);b.setText(s);b.setTextSize(14);b.setTextColor(WHITE);b.setAllCaps(false);b.setMinHeight(dp(48));b.setPadding(dp(16),dp(8),dp(16),dp(8));b.setBackground(bg(PINK,18));return b;}
     Button outline(String s){Button b=button(s);b.setTextColor(PINK);b.setBackground(bg(CREAM,18));b.setPadding(dp(12),dp(7),dp(12),dp(7));return b;}
