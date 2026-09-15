@@ -13,6 +13,7 @@ import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
 import com.android.billingclient.api.BillingResult;
+import com.android.billingclient.api.PendingPurchasesParams;
 import com.android.billingclient.api.ProductDetails;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.PurchasesUpdatedListener;
@@ -31,14 +32,12 @@ public class MainActivity2 extends Activity {
 
     private final PurchasesUpdatedListener purchasesUpdatedListener = (billingResult, purchases) -> {
         if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK && purchases != null) {
-            for (Purchase purchase : purchases) {
-                for (String productId : purchase.getProducts()) {
-                    pendingPurchases.put(purchase.getPurchaseToken(), purchase);
-                    runJs("window.onPlayPurchase && window.onPlayPurchase(" + js(productId) + "," + js(purchase.getPurchaseToken()) + ")");
-                }
+            for (Purchase purchase : purchases) for (String productId : purchase.getProducts()) {
+                pendingPurchases.put(purchase.getPurchaseToken(), purchase);
+                runJs("window.onPlayPurchase && window.onPlayPurchase(" + js(productId) + "," + js(purchase.getPurchaseToken()) + ")");
             }
         } else if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.USER_CANCELED) {
-            runJs("window.onPlayPurchaseError && window.onPlayPurchaseError(" + js(billingResult.getDebugMessage()) + ")");
+            runJs("window.toast && window.toast(" + js(billingResult.getDebugMessage()) + ")");
         }
     };
 
@@ -71,7 +70,7 @@ public class MainActivity2 extends Activity {
     }
 
     private void setupBilling() {
-        billingClient = BillingClient.newBuilder(this).setListener(purchasesUpdatedListener).enablePendingPurchases().build();
+        billingClient = BillingClient.newBuilder(this).setListener(purchasesUpdatedListener).enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build()).enableAutoServiceReconnection().build();
         billingClient.startConnection(new BillingClientStateListener() {
             @Override public void onBillingSetupFinished(BillingResult result) { if (result.getResponseCode() == BillingClient.BillingResponseCode.OK) queryExistingPurchases(); }
             @Override public void onBillingServiceDisconnected() { }
@@ -101,7 +100,7 @@ public class MainActivity2 extends Activity {
     }
 
     private void acknowledge(String token) {
-        Purchase purchase = pendingPurchases.get(token); if (purchase == null || purchase.isAcknowledged()) return;
+        Purchase purchase = pendingPurchases.get(token); if (purchase == null || purchase.isAcknowledged() || purchase.getPurchaseState() != Purchase.PurchaseState.PURCHASED) return;
         billingClient.acknowledgePurchase(AcknowledgePurchaseParams.newBuilder().setPurchaseToken(token).build(), result -> { if (result.getResponseCode() == BillingClient.BillingResponseCode.OK) pendingPurchases.remove(token); });
     }
 
