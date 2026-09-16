@@ -106,7 +106,9 @@ public class MainActivity2 extends Activity {
             s.setAllowFileAccessFromFileURLs(false);
             s.setAllowUniversalAccessFromFileURLs(false);
         }
-        if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true);
+        if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
         web.addJavascriptInterface(new NativeBridge(), "Android");
         web.setWebChromeClient(new WebChromeClient() {
             @Override public void onShowCustomView(View view, CustomViewCallback callback) {
