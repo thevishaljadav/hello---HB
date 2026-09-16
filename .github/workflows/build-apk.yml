@@ -57,7 +57,7 @@ jobs:
             git commit -m "Harden Asia Drama for production release [skip ci]"
             git push origin HEAD:app-online
           fi
-      - name: Configure release signing when credentials are present
+      - name: Configure release signing
         shell: bash
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -73,7 +73,15 @@ jobs:
             echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
             echo "Release signing credentials detected."
           else
-            echo "No release keystore configured; release artifacts will be unsigned test artifacts."
+            echo "No Play keystore configured. Creating an ephemeral test signing key for this build."
+            TEST_STORE="$RUNNER_TEMP/asia-drama-test.jks"
+            TEST_PASS="AsiaDramaTest-$(date +%s)-$RANDOM"
+            keytool -genkeypair -v -storetype PKCS12 -keystore "$TEST_STORE" -storepass "$TEST_PASS" -keypass "$TEST_PASS" -alias asia-drama-test -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=Asia Drama Test, O=Asia Drama, L=Vadodara, ST=Gujarat, C=IN"
+            echo "ANDROID_KEYSTORE_PATH=$TEST_STORE" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=$TEST_PASS" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=asia-drama-test" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=$TEST_PASS" >> "$GITHUB_ENV"
+            echo "Ephemeral test signing key created."
           fi
       - name: Run Android lint
         run: gradle :app:lintDebug
@@ -85,11 +93,7 @@ jobs:
         shell: bash
         run: |
           ls -lh app/build/outputs/apk/release/ app/build/outputs/bundle/release/
-          if [ -n "${ANDROID_KEYSTORE_PATH:-}" ]; then
-            $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose app/build/outputs/apk/release/app-release.apk
-          else
-            echo "Unsigned release artifact: configure Android signing secrets before Play submission."
-          fi
+          $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose app/build/outputs/apk/release/app-release.apk
       - uses: actions/upload-artifact@v4
         with:
           name: Asia-Drama-release-bundle
