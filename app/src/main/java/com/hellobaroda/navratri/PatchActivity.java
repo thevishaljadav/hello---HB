@@ -31,11 +31,16 @@ public class PatchActivity extends MainActivity2 {
             if (attempts < 15) schedulePatch();
             return;
         }
-        String js = loadAsset("ux-patch.js");
+        injectAsset(web, "ux-patch.js");
+        injectAsset(web, "ux-patch-fix.js");
+        if (attempts < 5) schedulePatch();
+    }
+
+    private void injectAsset(WebView web, String name) {
+        String js = loadAsset(name);
         if (js == null || js.isEmpty()) return;
         String escaped = js.replace("\\", "\\\\").replace("`", "\\`");
         web.evaluateJavascript("(function(){try{var s=document.createElement('script');s.textContent=`" + escaped + "`;document.head.appendChild(s);}catch(e){}})();", null);
-        if (attempts < 5) schedulePatch();
     }
 
     private String loadAsset(String name) {
