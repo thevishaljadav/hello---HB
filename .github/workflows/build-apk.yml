@@ -3,6 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [ app-online ]
+concurrency:
+  group: asia-drama-app-online-build
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
