@@ -13,7 +13,7 @@
         android:enableOnBackInvokedCallback="false"
         tools:targetApi="33">
         <activity
-            android:name=".MainActivity2"
+            android:name=".PatchActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize"
             android:supportsPictureInPicture="true"
