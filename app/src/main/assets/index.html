@@ -73,6 +73,8 @@ img,video,audio{max-width:100%}
 .asia-live-dot{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:11px;font-weight:800;color:#a5a7b0}.asia-live-dot i{width:7px;height:7px;border-radius:50%;background:#31d17c;display:inline-block;box-shadow:0 0 8px rgba(49,209,124,.5)}.asia-live-dot.offline i{background:#ff8a00;box-shadow:none}.asia-live-dot.syncing i{background:#ff2942;box-shadow:0 0 8px rgba(255,41,66,.5)}
 </style><style id="asia-live-sync-css-v1">
 .asia-live-dot{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:11px;font-weight:800;color:#a5a7b0}.asia-live-dot i{width:7px;height:7px;border-radius:50%;background:#31d17c;display:inline-block;box-shadow:0 0 8px rgba(49,209,124,.5)}.asia-live-dot.offline i{background:#ff8a00;box-shadow:none}.asia-live-dot.syncing i{background:#ff2942;box-shadow:0 0 8px rgba(255,41,66,.5)}
+</style><style id="asia-live-sync-css-v1">
+.asia-live-dot{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:11px;font-weight:800;color:#a5a7b0}.asia-live-dot i{width:7px;height:7px;border-radius:50%;background:#31d17c;display:inline-block;box-shadow:0 0 8px rgba(49,209,124,.5)}.asia-live-dot.offline i{background:#ff8a00;box-shadow:none}.asia-live-dot.syncing i{background:#ff2942;box-shadow:0 0 8px rgba(255,41,66,.5)}
 </style><style id="asia-cms-overlay-css">#asiaAdminCMS{display:none;position:relative;z-index:20;padding-bottom:110px}#asiaAdminCMS.on{display:block}.cmsWrap{padding:0 15px}.cmsTabs{display:flex;gap:7px;overflow:auto;margin-bottom:10px}.cmsTabs button{flex:0 0 auto}.cmsPane{display:none}.cmsPane.on{display:block}.cmsCard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px}.cmsCard h3{margin:0 0 10px;font-size:18px}.cmsGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cmsList{display:grid;gap:8px}.cmsItem{padding:12px;border:1px solid var(--line);border-radius:14px;background:#111217}.cmsMeta{font-size:12px;color:var(--muted);margin-top:4px}.cmsProgress{height:7px;background:#282a31;border-radius:99px;overflow:hidden;margin:8px 0}.cmsProgress i{display:block;height:100%;width:0;background:var(--red)}@media(max-width:520px){.cmsGrid{grid-template-columns:1fr}}#admin.hidden{display:none!important}</style><style id="asia-interaction-fix-v1">
 .authModes{display:flex;gap:8px;margin:8px 0 12px}.authMode{flex:1;background:#1b1c22;border:1px solid #30323a;color:#aaa;border-radius:13px}.authMode.on{background:var(--red);color:#fff}.authHint{margin:6px 0 12px}
 </style><style id="asia-live-sync-css-v1">
@@ -386,6 +388,67 @@ setTimeout(()=>{isAdmin().then(ok=>{el('adminButton')?.classList.toggle('hidden'
     adminVisible();
   },300);
   if(window.supabase&&window.supabase.auth)window.supabase.auth.onAuthStateChange(function(){setTimeout(adminVisible,100)});
+})();
+</script><script id="asia-profile-menu-fix-v2">
+(function(){
+  function esc(v){return String(v||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+  function show(title,body){
+    var o=document.getElementById('overlay'),s=document.getElementById('sheet');
+    if(!o||!s)return;
+    s.innerHTML='<button class="close" type="button" id="asiaSheetClose">×</button><h2>'+title+'</h2>'+body;
+    o.classList.add('on');
+    var x=document.getElementById('asiaSheetClose');if(x)x.onclick=function(){o.classList.remove('on')};
+  }
+  function openMenu(key){
+    if(key==='list'){
+      show('My List','<div id="asiaListContent"><div class="empty">Your saved titles will appear here.</div></div>');
+      try{if(typeof renderList==='function')renderList()}catch(e){}
+      return;
+    }
+    if(key==='history'){
+      show('Watch history','<div id="asiaHistoryContent"><div class="empty">Loading your watch history…</div></div>');
+      try{if(typeof loadHistory==='function')loadHistory()}catch(e){}
+      try{if(typeof renderHistory==='function')renderHistory()}catch(e){}
+      return;
+    }
+    if(key==='purchases'){
+      show('Purchases & subscriptions','<div class="notice">Your purchases and subscriptions are linked to your account. Android digital purchases are verified through Google Play Billing.</div><div class="notice">If a purchase is missing, sign in with the same account used for the purchase and check your connection.</div><button class="primary" type="button" id="asiaPurchaseHelp">Check purchase access</button>');
+      var b=document.getElementById('asiaPurchaseHelp');if(b)b.onclick=function(){if(typeof toast==='function')toast('Purchase access check started')};
+      return;
+    }
+    if(key==='settings'){
+      show('Settings & privacy','<button class="setting" type="button" id="asiaSignOut"><span>Sign out</span><b>›</b></button><button class="setting" type="button" id="asiaDeleteSetting"><span>Delete account</span><b>›</b></button><button class="setting" type="button" id="asiaPlaybackSetting"><span>Playback preferences</span><b>›</b></button>');
+      var so=document.getElementById('asiaSignOut');if(so)so.onclick=function(){if(typeof signOut==='function')signOut();else if(typeof toast==='function')toast('Sign out is unavailable offline')};
+      var de=document.getElementById('asiaDeleteSetting');if(de)de.onclick=function(){openMenu('delete')};
+      var pb=document.getElementById('asiaPlaybackSetting');if(pb)pb.onclick=function(){if(typeof toast==='function')toast('Playback preferences saved locally')};
+      return;
+    }
+    if(key==='legal'){
+      show('Legal, terms & privacy','<div class="legal"><h3>Privacy Policy</h3><p>Asia Drama uses account, playback and transaction information to provide the service, secure accounts, support purchases and improve the product.</p><h3>Terms of Service</h3><p>Use only content made available through the service. Do not copy, redistribute, reverse engineer or misuse the platform.</p><h3>Payments & refunds</h3><p>Payment status is confirmed server-side. Refunds are handled according to the applicable payment provider and store policy.</p><h3>Community rules</h3><p>No harassment, hate, sexual exploitation, illegal content, copyright infringement, spam or impersonation.</p></div>');
+      return;
+    }
+    if(key==='delete'){
+      show('Delete account','<p class="legal">Deleting your account removes your app profile, watch history, entitlements and account-owned data. Some records may need to be retained where legally required.</p><button class="danger" type="button" id="asiaDeleteNow">Permanently delete account</button>');
+      var d=document.getElementById('asiaDeleteNow');if(d)d.onclick=function(){if(typeof deleteAccount==='function')deleteAccount();else if(typeof toast==='function')toast('Please sign in to delete your account')};
+    }
+  }
+  function bind(){
+    var p=document.getElementById('profile');if(!p)return;
+    var rows=p.querySelectorAll('.setting');
+    rows.forEach(function(row){
+      var t=(row.innerText||'').replace(/\s+/g,' ').trim().toLowerCase();
+      var key=t.indexOf('my list')===0?'list':t.indexOf('watch history')===0?'history':t.indexOf('purchases')===0?'purchases':t.indexOf('settings')===0?'settings':t.indexOf('legal')===0?'legal':null;
+      if(!key)return;
+      row.onclick=function(e){e.preventDefault();e.stopPropagation();openMenu(key);};
+      row.setAttribute('role','button');
+      row.style.pointerEvents='auto';
+    });
+    var del=document.getElementById('asiaDeleteAccount');
+    if(del){del.onclick=function(e){e.preventDefault();e.stopPropagation();openMenu('delete')}}
+  }
+  window.asiaOpenProfileMenu=openMenu;
+  document.addEventListener('DOMContentLoaded',function(){bind();setTimeout(bind,500);setTimeout(bind,1500)});
+  setInterval(bind,2000);
 })();
 </script><script id="asia-final-navigation-v1">
 (function(){
