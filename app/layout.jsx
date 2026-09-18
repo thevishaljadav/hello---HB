@@ -6,5 +6,13 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  return <html lang="en"><head><link rel="icon" href="/favicon.svg" sizes="any" /></head><body>{children}</body></html>;
+  return (
+    <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.svg" sizes="any" />
+        <meta name="theme-color" content="#E5092F" />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
 }
